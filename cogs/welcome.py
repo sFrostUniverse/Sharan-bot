@@ -1,7 +1,16 @@
 import discord
 from discord.ext import commands
+from discord import Embed, ui
 
-ROLE_ID = 1389613063107510282  # Role to assign on join
+WELCOME_ROLE_ID = 1389613063107510282  # Your auto-role ID
+TWITCH_URL = "https://twitch.tv/sfrostuniverse"
+RULES_URL = "https://discord.com/channels/yourserverid/ruleschannelid"  # Replace with real channel link
+
+class WelcomeView(ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(ui.Button(label="📺 Follow on Twitch", url=TWITCH_URL))
+        self.add_item(ui.Button(label="📜 Read Server Rules", url=RULES_URL))
 
 class Welcome(commands.Cog):
     def __init__(self, bot):
@@ -9,27 +18,29 @@ class Welcome(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
-        # Send welcome DM
         try:
-            embed = discord.Embed(
-                title="👋 Welcome to the Server!",
-                description="Hey buddy! I'm **Sharan**, your digital friend.\nFeel free to hang out and enjoy the server 😊",
-                color=discord.Color.blurple()
+            embed = Embed(
+                title="💌 Welcome to the server, buddy!",
+                description=(
+                    "I'm **Sharan**, your digital friend.\n"
+                    "Feel free to explore and say hi!\n\n"
+                    "⚡ Powered by **sFrostUniverse**"
+                ),
+                color=discord.Color.purple()
             )
-            embed.set_footer(text="Powered by Sharan")
-            await member.send(embed=embed)
-        except discord.Forbidden:
-            print(f"❌ Couldn't DM {member.name} — DMs might be disabled.")
+            embed.set_thumbnail(url=member.guild.icon.url if member.guild.icon else discord.Embed.Empty)
 
-        # Assign role
-        role = member.guild.get_role(ROLE_ID)
-        if role:
-            try:
-                await member.add_roles(role, reason="Auto welcome role by Sharan")
-            except discord.Forbidden:
-                print(f"❌ Missing permissions to add role to {member.name}.")
-        else:
-            print(f"❌ Role ID {ROLE_ID} not found in guild '{member.guild.name}'.")
+            await member.send(embed=embed, view=WelcomeView())
+
+            # Give the welcome role
+            role = member.guild.get_role(WELCOME_ROLE_ID)
+            if role:
+                await member.add_roles(role)
+
+        except discord.Forbidden:
+            print(f"⚠️ Cannot DM or assign role to {member.name}")
+        except Exception as e:
+            print(f"❌ Error in welcome message: {e}")
 
 async def setup(bot):
     await bot.add_cog(Welcome(bot))
