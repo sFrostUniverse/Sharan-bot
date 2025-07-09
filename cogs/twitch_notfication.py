@@ -62,6 +62,7 @@ class TwitchNotifications(commands.Cog):
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers) as resp:
                 data = await resp.json()
+
                 if data["data"]:
                     # Stream is live
                     if not self.stream_online:
@@ -69,14 +70,28 @@ class TwitchNotifications(commands.Cog):
                         stream_data = data["data"][0]
                         await self.send_live_notification(stream_data)
                 else:
-                    self.stream_online = False
+                    # Stream is offline
+                    if self.stream_online:
+                        self.stream_online = False
+                        await self.bot.change_presence(activity=None)
 
     async def send_live_notification(self, stream):
         channel = self.bot.get_channel(DISCORD_CHANNEL_ID)
         if channel:
             title = stream["title"]
             url = f"https://twitch.tv/{TWITCH_USERNAME}"
-            await channel.send(f"🔴 **{TWITCH_USERNAME} is now live!**\n**Title:** {title}\n{url}")
+
+            # Update bot presence to "Streaming"
+            await self.bot.change_presence(
+                activity=discord.Streaming(name=title, url=url)
+            )
+
+            # Send notification to alert channel
+            await channel.send(
+                f"🔴 **{TWITCH_USERNAME} is now live!**\n"
+                f"**Title:** {title}\n"
+                f"{url}"
+            )
 
 async def setup(bot):
     await bot.add_cog(TwitchNotifications(bot))
