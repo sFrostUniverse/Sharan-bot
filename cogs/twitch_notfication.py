@@ -11,6 +11,7 @@ TWITCH_CLIENT_ID = os.getenv("TWITCH_CLIENT_ID")
 TWITCH_CLIENT_SECRET = os.getenv("TWITCH_CLIENT_SECRET")
 TWITCH_USERNAME = os.getenv("TWITCH_USERNAME")  # your twitch username (no @)
 DISCORD_CHANNEL_ID = int(os.getenv("TWITCH_ALERT_CHANNEL_ID"))
+TWITCH_LIVE_ROLE_ID = os.getenv("TWITCH_LIVE_ROLE_ID")
 
 class WatchStreamButton(ui.View):
     def __init__(self, twitch_url: str):
@@ -118,7 +119,15 @@ class TwitchNotifications(commands.Cog):
 
         embed.set_footer(text="Powered by Sharan • sFrostUniverse")
 
-        await channel.send(embed=embed, view=WatchStreamButton(twitch_url))
+        # New: Define the role mention content
+        role_mention = f"<@&{TWITCH_LIVE_ROLE_ID}>" if TWITCH_LIVE_ROLE_ID else None
+        
+        await channel.send(
+            content=role_mention, # Send the role mention as message content
+            embed=embed, 
+            view=WatchStreamButton(twitch_url),
+            allowed_mentions=discord.AllowedMentions(roles=True)
+        )
 
 async def setup(bot):
     await bot.add_cog(TwitchNotifications(bot))
