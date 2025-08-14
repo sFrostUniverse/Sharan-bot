@@ -7,11 +7,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-TWITCH_CLIENT_ID = os.getenv("TWITCH_CLIENT_ID")
-TWITCH_CLIENT_SECRET = os.getenv("TWITCH_CLIENT_SECRET")
-TWITCH_USERNAME = os.getenv("TWITCH_USERNAME")  # your twitch username (no @)
-DISCORD_CHANNEL_ID = int(os.getenv("TWITCH_ALERT_CHANNEL_ID"))
-TWITCH_LIVE_ROLE_ID = os.getenv("TWITCH_LIVE_ROLE_ID")
+TWITCH_CLIENT_ID = os.getenv("ueq7ckoh89pkcoi9fti0wozgd9izcf")
+TWITCH_CLIENT_SECRET = os.getenv("fy2ocmiix1w7ybudit8jcpo3dwukqb")
+TWITCH_USERNAME = os.getenv("sfrostuniverse")  # your twitch username (no @)
+DISCORD_CHANNEL_ID = int(os.getenv("1274614795928211520"))
+TWITCH_LIVE_ROLE_ID = os.getenv("1388328089980768406")
 
 class WatchStreamButton(ui.View):
     def __init__(self, twitch_url: str):
