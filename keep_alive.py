@@ -1,5 +1,8 @@
-from flask import Flask
+from flask import Flask, jsonify
 from threading import Thread
+import psutil
+import os
+from waitress import serve  # ✅ production server
 
 app = Flask(__name__)
 
@@ -7,9 +10,20 @@ app = Flask(__name__)
 def home():
     return "Sharan is running!"
 
+@app.route("/health")
+def health():
+    return jsonify({
+        "status": "ok",
+        "cpu_percent": psutil.cpu_percent(interval=0.5),
+        "memory_percent": psutil.virtual_memory().percent,
+        "disk_usage": psutil.disk_usage("/").percent,
+        "threads": psutil.cpu_count(),
+    })
+
 def run():
-    app.run(host="0.0.0.0", port=8080)
+    port = int(os.environ.get("PORT", 8080))  # Render sets PORT env
+    serve(app, host="0.0.0.0", port=port)
 
 def keep_alive():
-    thread = Thread(target=run)
+    thread = Thread(target=run, daemon=True)
     thread.start()

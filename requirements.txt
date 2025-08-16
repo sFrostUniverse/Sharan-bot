@@ -2,3 +2,5 @@ discord.py>=2.3.2
 aiohttp
 python-dotenv
 flask
+psutil
+waitress

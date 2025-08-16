@@ -6,9 +6,7 @@ from dotenv import load_dotenv
 
 from keep_alive import keep_alive
 
-
 keep_alive()
-
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -23,6 +21,7 @@ intents.members = True  # Needed for member join and role assignment
 client = commands.Bot(command_prefix="!", intents=intents)
 client.synced = False
 
+
 # Load all cogs from /cogs directory
 async def load_cogs():
     for filename in os.listdir("./cogs"):
@@ -33,22 +32,24 @@ async def load_cogs():
             except Exception as e:
                 print(f"❌ Failed to load {filename}: {e}")
 
-# When the bot is ready
+
+# Proper v2.x setup hook (runs before on_ready)
 @client.event
-async def on_ready():
-    await client.wait_until_ready()
+async def setup_hook():
+    await load_cogs()
     try:
         synced = await client.tree.sync()
         print(f"🌍 Globally synced {len(synced)} slash command(s).")
     except Exception as e:
         print(f"❌ Failed to sync slash commands: {e}")
-    
+
+
+# When the bot is ready
+@client.event
+async def on_ready():
     print(f"🤖 Sharan is online as {client.user} (ID: {client.user.id})")
 
-# Main async loop
-async def main():
-    await load_cogs()
-    await client.start(TOKEN)
 
-# Run bot
-asyncio.run(main())
+
+if __name__ == "__main__":
+    client.run(TOKEN)
