@@ -90,7 +90,11 @@ class TwitchNotifications(commands.Cog):
                         stream_data = data["data"][0]
                         await self.send_live_notification(stream_data)
                 else:
+                    if self.stream_online:
+                        # stream just ended → reset presence
+                        await self.bot.change_presence(activity=discord.Game("with FrostHub"))
                     self.stream_online = False
+
 
     async def send_live_notification(self, stream):
         channel = self.bot.get_channel(DISCORD_CHANNEL_ID)
@@ -128,6 +132,11 @@ class TwitchNotifications(commands.Cog):
             view=WatchStreamButton(twitch_url),
             allowed_mentions=discord.AllowedMentions(roles=True)
         )
+
+        await self.bot.change_presence(activity=discord.Streaming(
+            name=title,
+            url=twitch_url
+        ))
 
 async def setup(bot):
     await bot.add_cog(TwitchNotifications(bot))
