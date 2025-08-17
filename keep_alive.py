@@ -2,7 +2,7 @@ from flask import Flask, jsonify
 from threading import Thread
 import psutil
 import os
-from waitress import serve  # ✅ production server
+from waitress import serve  # production server
 
 app = Flask(__name__)
 
@@ -21,7 +21,7 @@ def health():
     })
 
 def run():
-    port = int(os.environ.get("PORT", 8080))  # Render sets PORT env
+    port = int(os.environ.get("PORT", 8080))  # Render sets PORT automatically
     serve(app, host="0.0.0.0", port=port)
 
 def keep_alive():
