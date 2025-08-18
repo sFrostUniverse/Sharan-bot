@@ -14,11 +14,12 @@ def home():
 def health():
     return jsonify({
         "status": "ok",
-        "cpu_percent": psutil.cpu_percent(interval=0.5),
+        "cpu_percent": psutil.cpu_percent(interval=None),  # ✅ non-blocking
         "memory_percent": psutil.virtual_memory().percent,
         "disk_usage": psutil.disk_usage("/").percent,
         "threads": psutil.cpu_count(),
     })
+
 
 def run():
     port = int(os.environ.get("PORT", 8080))  # Render sets PORT automatically
