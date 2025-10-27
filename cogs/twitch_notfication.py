@@ -141,7 +141,7 @@ class TwitchNotifications(commands.Cog):
         if banner_url:
             embed.set_image(url=banner_url)
 
-        embed.set_footer(text="Powered by Sharan • sFrostUniverse")
+        embed.set_footer(text="Powered by Sharan • Froséa")
 
         # ✅ Mention role safely (if set)
         role_mention = f"<@&{TWITCH_LIVE_ROLE_ID}>" if TWITCH_LIVE_ROLE_ID else None
