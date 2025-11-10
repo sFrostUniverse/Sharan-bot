@@ -9,9 +9,26 @@ load_dotenv()
 
 TWITCH_CLIENT_ID = os.getenv("TWITCH_CLIENT_ID")
 TWITCH_CLIENT_SECRET = os.getenv("TWITCH_CLIENT_SECRET")
-TWITCH_USERNAME = os.getenv("TWITCH_USERNAME")  # your twitch username (no @)
-DISCORD_CHANNEL_ID = int(os.getenv("TWITCH_ALERT_CHANNEL_ID", 0))
-TWITCH_LIVE_ROLE_ID = int(os.getenv("TWITCH_LIVE_ROLE_ID", 0))  # ✅ Cast to int safely
+TWITCH_USERNAME = os.getenv("TWITCH_USERNAME")
+
+# 🟣 Multi-channel:role mapping (supports @everyone)
+alert_mappings_env = os.getenv("TWITCH_ALERT_MAPPINGS", "")
+TWITCH_ALERT_MAPPINGS = []
+
+for mapping in alert_mappings_env.split(","):
+    if ":" in mapping:
+        channel_id, role_value = mapping.split(":")
+        try:
+            channel_id = int(channel_id.strip())
+            role_value = role_value.strip()
+            TWITCH_ALERT_MAPPINGS.append({
+                "channel_id": channel_id,
+                "role": role_value  # role ID or 'everyone'
+            })
+        except ValueError:
+            print(f"⚠️ Invalid mapping skipped: {mapping}")
+
+print("📡 Loaded Twitch alert mappings:", TWITCH_ALERT_MAPPINGS)
 
 
 class WatchStreamButton(ui.View):
@@ -26,7 +43,7 @@ class TwitchNotifications(commands.Cog):
         self.access_token = None
         self.user_id = None
         self.stream_online = False
-        self.last_stream_id = None  # ✅ Track last stream to avoid duplicates
+        self.last_stream_id = None
         self.check_stream.start()
 
     def cog_unload(self):
@@ -102,23 +119,20 @@ class TwitchNotifications(commands.Cog):
 
                 if data.get("data"):
                     stream_data = data["data"][0]
-
-                    # ✅ Only send if this is a NEW stream
                     if stream_data["id"] != self.last_stream_id:
                         self.last_stream_id = stream_data["id"]
                         self.stream_online = True
                         await self.send_live_notification(stream_data)
                 else:
                     if self.stream_online:
-                        # stream just ended → reset presence
+                        await self.send_offline_notification()
                         await self.bot.change_presence(activity=None)
                     self.stream_online = False
-                    self.last_stream_id = None  # reset
+                    self.last_stream_id = None
 
     async def send_live_notification(self, stream):
-        channel = self.bot.get_channel(DISCORD_CHANNEL_ID)
-        if not channel:
-            print("❌ Discord channel not found!")
+        if not TWITCH_ALERT_MAPPINGS:
+            print("❌ No Twitch alert mappings configured!")
             return
 
         title = stream["title"]
@@ -142,22 +156,75 @@ class TwitchNotifications(commands.Cog):
             embed.set_image(url=banner_url)
 
         embed.set_footer(text="Powered by Sharan • Froséa")
+        view = WatchStreamButton(twitch_url)
 
-        # ✅ Mention role safely (if set)
-        role_mention = f"<@&{TWITCH_LIVE_ROLE_ID}>" if TWITCH_LIVE_ROLE_ID else None
-        
-        await channel.send(
-            content=role_mention,
-            embed=embed,
-            view=WatchStreamButton(twitch_url),
-            allowed_mentions=discord.AllowedMentions(roles=True)
-        )
+        for mapping in TWITCH_ALERT_MAPPINGS:
+            channel_id = mapping["channel_id"]
+            role_value = mapping["role"]
 
-        # ✅ Update bot presence
+            channel = self.bot.get_channel(channel_id)
+            if not channel:
+                print(f"⚠️ Channel {channel_id} not found or not cached.")
+                continue
+
+            # Mention logic
+            if role_value.lower() == "everyone":
+                role_mention = "@everyone"
+                allowed_mentions = discord.AllowedMentions(everyone=True)
+            else:
+                role_mention = f"<@&{role_value}>"
+                allowed_mentions = discord.AllowedMentions(roles=True)
+
+            try:
+                await channel.send(
+                    content=role_mention,
+                    embed=embed,
+                    view=view,
+                    allowed_mentions=allowed_mentions
+                )
+                print(f"✅ Sent LIVE alert to {channel.name} ({channel.id}) → Mentioned {role_mention}")
+            except Exception as e:
+                print(f"❌ Failed to send to {channel_id}: {e}")
+
+        # Update bot presence
         await self.bot.change_presence(activity=discord.Streaming(
             name=title,
             url=twitch_url
         ))
+
+    async def send_offline_notification(self):
+        """Optional: Notify when the stream ends"""
+        offline_embed = discord.Embed(
+            title=f"💜 {TWITCH_USERNAME} has ended the stream!",
+            description="The stream just went offline. Thanks for watching!",
+            color=discord.Color.dark_purple()
+        )
+        offline_embed.set_footer(text="Powered by Sharan • Froséa")
+
+        for mapping in TWITCH_ALERT_MAPPINGS:
+            channel_id = mapping["channel_id"]
+            role_value = mapping["role"]
+
+            channel = self.bot.get_channel(channel_id)
+            if not channel:
+                continue
+
+            if role_value.lower() == "everyone":
+                role_mention = "@everyone"
+                allowed_mentions = discord.AllowedMentions(everyone=True)
+            else:
+                role_mention = f"<@&{role_value}>"
+                allowed_mentions = discord.AllowedMentions(roles=True)
+
+            try:
+                await channel.send(
+                    content=role_mention,
+                    embed=offline_embed,
+                    allowed_mentions=allowed_mentions
+                )
+                print(f"💤 Sent OFFLINE alert to {channel.name} ({channel.id})")
+            except Exception as e:
+                print(f"❌ Failed offline alert to {channel_id}: {e}")
 
 
 async def setup(bot):
