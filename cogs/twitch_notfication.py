@@ -183,10 +183,16 @@ class TwitchNotifications(commands.Cog):
             except Exception as e:
                 print(f"❌ Failed to send to {channel_id}: {e}")
 
-        await self.bot.change_presence(activity=discord.Streaming(
-            name=title,
-            url=twitch_url
-        ))
+        # 🟣 Update bot presence with game name + your name
+        presence_text = f"Streaming now — {game_name} | itsfrosea"
+
+        await self.bot.change_presence(
+            activity=discord.Streaming(
+                name=presence_text,
+                url=twitch_url
+            )
+        )
+
 
     async def update_channel_name(self, is_live: bool):
         """Change the announcement channel name depending on stream status."""
