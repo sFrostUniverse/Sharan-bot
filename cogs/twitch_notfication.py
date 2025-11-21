@@ -30,6 +30,9 @@ for mapping in alert_mappings_env.split(","):
 
 print("📡 Loaded Twitch alert mappings:", TWITCH_ALERT_MAPPINGS)
 
+# ✅ Your announcement channel ID (the one to rename)
+ANNOUNCEMENT_CHANNEL_ID = 1437440555490738176
+
 
 class WatchStreamButton(ui.View):
     def __init__(self, twitch_url: str):
@@ -123,9 +126,11 @@ class TwitchNotifications(commands.Cog):
                         self.last_stream_id = stream_data["id"]
                         self.stream_online = True
                         await self.send_live_notification(stream_data)
+                        await self.update_channel_name(is_live=True)
                 else:
                     if self.stream_online:
                         await self.bot.change_presence(activity=None)
+                        await self.update_channel_name(is_live=False)
                     self.stream_online = False
                     self.last_stream_id = None
 
@@ -164,7 +169,6 @@ class TwitchNotifications(commands.Cog):
                 print(f"⚠️ Channel {channel_id} not found or not cached.")
                 continue
 
-            # Always mention specific role ID
             role_mention = f"<@&{role_value}>"
             allowed_mentions = discord.AllowedMentions(roles=True)
 
@@ -179,11 +183,28 @@ class TwitchNotifications(commands.Cog):
             except Exception as e:
                 print(f"❌ Failed to send to {channel_id}: {e}")
 
-        # Update bot presence
         await self.bot.change_presence(activity=discord.Streaming(
             name=title,
             url=twitch_url
         ))
+
+    async def update_channel_name(self, is_live: bool):
+        """Change the announcement channel name depending on stream status."""
+        channel = self.bot.get_channel(ANNOUNCEMENT_CHANNEL_ID)
+        if not channel:
+            print(f"⚠️ Announcement channel {ANNOUNCEMENT_CHANNEL_ID} not found.")
+            return
+
+        new_name = "🟢froséa-live🟢" if is_live else "🔴froséa-live🔴"
+
+        try:
+            if channel.name != new_name:
+                await channel.edit(name=new_name)
+                print(f"✅ Updated announcement channel name to: {new_name}")
+        except discord.Forbidden:
+            print("❌ Missing permission to rename the channel.")
+        except Exception as e:
+            print(f"❌ Failed to rename channel: {e}")
 
 
 async def setup(bot):
