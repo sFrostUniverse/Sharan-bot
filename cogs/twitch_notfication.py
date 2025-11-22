@@ -201,7 +201,7 @@ class TwitchNotifications(commands.Cog):
             print(f"⚠️ Announcement channel {ANNOUNCEMENT_CHANNEL_ID} not found.")
             return
 
-        new_name = "🟢froséa-live🟢" if is_live else "🔴froséa-live🔴"
+        new_name = "froséa-live🔴" if is_live else "froséa-offline"
 
         try:
             if channel.name != new_name:
