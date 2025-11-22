@@ -30,6 +30,10 @@ class SayCommand(commands.Cog):
 
         await interaction.response.defer(ephemeral=True)
 
+        # 🟣 Log who used the command
+        user = interaction.user
+        print(f"📝 /say used by: {user} | Display Name: {user.display_name} | ID: {user.id}")
+
         # If no channel is selected, send to the same one where the command was used
         target_channel = channel or interaction.channel
 
