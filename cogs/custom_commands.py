@@ -28,13 +28,15 @@ class SayCommand(commands.Cog):
         Sends a message (or reply) to any channel — or same one if none chosen.
         """
 
-        await interaction.response.defer(ephemeral=True)
+        # Acknowledge the interaction safely
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
 
-        # 🟣 Log who used the command
+        # 🟣 Log to terminal
         user = interaction.user
         print(f"📝 /say used by: {user} | Display Name: {user.display_name} | ID: {user.id}")
 
-        # If no channel is selected, send to the same one where the command was used
+        # If no channel selected, send in the same channel where the command was used
         target_channel = channel or interaction.channel
 
         try:
@@ -65,15 +67,16 @@ class SayCommand(commands.Cog):
                 f"❌ Error: {e}", ephemeral=True
             )
 
+    # Correct error handler — using followup instead of response
     async def cog_app_command_error(
         self, interaction: discord.Interaction, error: app_commands.AppCommandError
     ):
         if isinstance(error, app_commands.MissingPermissions):
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "⚠️ Only **Admins** can use this command.", ephemeral=True
             )
         else:
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 f"❌ Error: {error}", ephemeral=True
             )
 
