@@ -23,20 +23,15 @@ class SayCommand(commands.Cog):
         channel: discord.TextChannel = None,
         reply_to: str = None
     ):
-        """
-        Admin-only /say command.
-        Sends a message (or reply) to any channel — or same one if none chosen.
-        """
+        """Send a message as the bot."""
 
-        # Acknowledge the interaction safely
-        if not interaction.response.is_done():
-            await interaction.response.defer(ephemeral=True)
-
-        # 🟣 Log to terminal
+        # 🔥 Log FIRST (this always works)
         user = interaction.user
-        print(f"📝 /say used by: {user} | Display Name: {user.display_name} | ID: {user.id}")
+        print(f"🔔 /say executed by: {user} | Display Name: {user.display_name} | ID: {user.id}")
 
-        # If no channel selected, send in the same channel where the command was used
+        # Acknowledge early
+        await interaction.response.defer(ephemeral=True)
+
         target_channel = channel or interaction.channel
 
         try:
@@ -44,12 +39,12 @@ class SayCommand(commands.Cog):
                 target_message = await target_channel.fetch_message(int(reply_to))
                 await target_message.reply(message)
                 await interaction.followup.send(
-                    f"✅ Replied in {target_channel.mention}", ephemeral=True
+                    f"💬 Replied in {target_channel.mention}", ephemeral=True
                 )
             else:
                 await target_channel.send(message)
                 await interaction.followup.send(
-                    f"✅ Message sent in {target_channel.mention}", ephemeral=True
+                    f"📨 Message sent in {target_channel.mention}", ephemeral=True
                 )
 
         except discord.Forbidden:
@@ -67,16 +62,15 @@ class SayCommand(commands.Cog):
                 f"❌ Error: {e}", ephemeral=True
             )
 
-    # Correct error handler — using followup instead of response
     async def cog_app_command_error(
         self, interaction: discord.Interaction, error: app_commands.AppCommandError
     ):
         if isinstance(error, app_commands.MissingPermissions):
-            await interaction.followup.send(
+            await interaction.response.send_message(
                 "⚠️ Only **Admins** can use this command.", ephemeral=True
             )
         else:
-            await interaction.followup.send(
+            await interaction.response.send_message(
                 f"❌ Error: {error}", ephemeral=True
             )
 
