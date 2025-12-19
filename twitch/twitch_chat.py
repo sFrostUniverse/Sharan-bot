@@ -14,10 +14,14 @@ class SharanTwitchBot(commands.Bot):
 
     def __init__(self):
         super().__init__(
-            token=os.getenv("TWITCH_TOKEN"),
-            prefix="!",
-            initial_channels=[os.getenv("TWITCH_CHAT_CHANNEL")]
-        )
+        token=os.getenv("TWITCH_TOKEN"),
+        client_id=os.getenv("TWITCH_CLIENT_ID"),
+        client_secret=os.getenv("TWITCH_CLIENT_SECRET"),
+        bot_id=os.getenv("TWITCH_BOT_ID"),
+        prefix="!",
+        initial_channels=[os.getenv("TWITCH_CHAT_CHANNEL")]
+    )
+
 
     async def event_ready(self):
         global twitch_bot_instance
