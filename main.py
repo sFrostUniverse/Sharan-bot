@@ -5,6 +5,13 @@ import discord
 from discord.ext import commands
 import os
 from dotenv import load_dotenv
+import threading
+
+from twitch.twitch_chat import run_twitch
+from twitch.eventsub import app as twitch_eventsub_app
+import uvicorn
+import threading
+
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -30,5 +37,19 @@ async def setup_hook():
 async def on_ready():
     print(f"🤖 Sharan is online as {client.user}")
 
+def run_eventsub():
+    uvicorn.run(
+        twitch_eventsub_app,
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", 8000)),
+        log_level="info"
+    )
+
 if __name__ == "__main__":
+    # Start Twitch chat bot (stable v2)
+    twitch_thread = threading.Thread(target=run_twitch, daemon=True)
+    twitch_thread.start()
+
+    # Start Discord bot
     client.run(TOKEN)
+

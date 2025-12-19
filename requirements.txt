@@ -4,3 +4,7 @@ python-dotenv
 flask
 psutil
 waitress
+twitchio
+uvicorn
+fastapi
+requests
