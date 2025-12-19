@@ -1,6 +1,3 @@
-from keep_alive import keep_alive
-keep_alive()
-
 import os
 import threading
 import discord
@@ -59,8 +56,8 @@ if __name__ == "__main__":
     discord_thread.start()
 
     # 2️⃣ Start EventSub in background thread
-    eventsub_thread = threading.Thread(target=run_eventsub, daemon=True)
-    eventsub_thread.start()
+    # eventsub_thread = threading.Thread(target=run_eventsub, daemon=True)
+    # eventsub_thread.start()
 
     # 3️⃣ Start TwitchIO in MAIN THREAD (CRITICAL)
     twitch_bot = SharanTwitchBot()

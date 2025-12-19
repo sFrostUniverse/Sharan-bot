@@ -1,5 +1,4 @@
 import os
-import asyncio
 from dotenv import load_dotenv
 from twitchio.ext import commands
 
@@ -14,13 +13,17 @@ class SharanTwitchBot(commands.Bot):
 
     def __init__(self):
         super().__init__(
-        token=os.getenv("TWITCH_TOKEN"),
-        client_id=os.getenv("TWITCH_CLIENT_ID"),
-        client_secret=os.getenv("TWITCH_CLIENT_SECRET"),
-        bot_id=os.getenv("TWITCH_BOT_ID"),
-        prefix="!",
-        initial_channels=[os.getenv("TWITCH_CHAT_CHANNEL")]
-    )
+            token=os.getenv("TWITCH_TOKEN"),
+            client_id=os.getenv("TWITCH_CLIENT_ID"),
+            client_secret=os.getenv("TWITCH_CLIENT_SECRET"),
+            bot_id=os.getenv("TWITCH_BOT_ID"),
+            prefix="!",
+            initial_channels=[os.getenv("TWITCH_CHAT_CHANNEL")]
+        )
+
+    async def start_bot(self):
+        await super().start()
+
 
 
     async def event_ready(self):
@@ -29,7 +32,6 @@ class SharanTwitchBot(commands.Bot):
 
         print("🟣 Twitch chat connected (v2.8.2)")
         print("Logged in to Twitch chat successfully")
-
 
     async def event_message(self, message):
         if message.echo:
@@ -51,14 +53,6 @@ class SharanTwitchBot(commands.Bot):
         elif content == "!live":
             msg = await stream_start_message()
             await message.channel.send(msg)
-
-
-def run_twitch():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
-    bot = SharanTwitchBot()
-    bot.run()
 
 
 async def send_chat_message(text: str):
