@@ -1,19 +1,20 @@
 from keep_alive import keep_alive
 keep_alive()
 
+import os
+import threading
 import discord
 from discord.ext import commands
-import os
 from dotenv import load_dotenv
-import threading
-
-from twitch.twitch_chat import run_twitch
-from twitch.eventsub import app as twitch_eventsub_app
 import uvicorn
-import threading
 
+from twitch.twitch_chat import SharanTwitchBot
+from twitch.eventsub import app as twitch_eventsub_app
 
 load_dotenv()
+
+# ---------------- DISCORD SETUP ----------------
+
 TOKEN = os.getenv("DISCORD_TOKEN")
 
 intents = discord.Intents.default()
@@ -37,6 +38,11 @@ async def setup_hook():
 async def on_ready():
     print(f"🤖 Sharan is online as {client.user}")
 
+def run_discord():
+    client.run(TOKEN)
+
+# ---------------- EVENTSUB SERVER ----------------
+
 def run_eventsub():
     uvicorn.run(
         twitch_eventsub_app,
@@ -45,11 +51,17 @@ def run_eventsub():
         log_level="info"
     )
 
+# ---------------- MAIN ENTRY ----------------
+
 if __name__ == "__main__":
-    # Start Twitch chat bot (stable v2)
-    twitch_thread = threading.Thread(target=run_twitch, daemon=True)
-    twitch_thread.start()
+    # 1️⃣ Start Discord in background thread
+    discord_thread = threading.Thread(target=run_discord, daemon=True)
+    discord_thread.start()
 
-    # Start Discord bot
-    client.run(TOKEN)
+    # 2️⃣ Start EventSub in background thread
+    eventsub_thread = threading.Thread(target=run_eventsub, daemon=True)
+    eventsub_thread.start()
 
+    # 3️⃣ Start TwitchIO in MAIN THREAD (CRITICAL)
+    twitch_bot = SharanTwitchBot()
+    twitch_bot.run()
