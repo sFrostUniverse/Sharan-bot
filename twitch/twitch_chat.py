@@ -26,19 +26,14 @@ class SharanTwitchBot(commands.Bot):
 
 
 
-    async def event_ready(self):
-        global twitch_bot_instance
-        twitch_bot_instance = self
+async def event_ready(self):
+    global twitch_bot_instance
+    twitch_bot_instance = self
 
-        channel_name = os.getenv("TWITCH_CHAT_CHANNEL")
+    print("🟣 Twitch chat connected (v2.8.2)")
+    print("Logged in to Twitch chat successfully")
+    print("TWITCH_CHAT_CHANNEL =", repr(os.getenv("TWITCH_CHAT_CHANNEL")))
 
-        print("🟣 Twitch chat connected (v2.8.2)")
-        print("Logged in to Twitch chat successfully")
-        print("TWITCH_CHAT_CHANNEL =", repr(channel_name))
-
-        # 🔑 FORCE JOIN (THIS IS THE KEY)
-        await self.join_channels([channel_name])
-        print("✅ Joined channel:", channel_name)
 
 
 async def event_message(self, message):
