@@ -28,7 +28,8 @@ class SharanTwitchBot(commands.Bot):
         twitch_bot_instance = self
 
         print("🟣 Twitch chat connected (v2.8.2)")
-        print(f"Logged in as: {self.nick}")
+        print("Logged in to Twitch chat successfully")
+
 
     async def event_message(self, message):
         if message.echo:
