@@ -8,34 +8,46 @@ from discord_bot import start_discord_async
 
 load_dotenv()
 
-twitch_bot = None
+# Keep references so tasks are not garbage-collected
+background_tasks: list[asyncio.Task] = []
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global twitch_bot
-
     print("🚀 Starting Sharan services...")
 
     async def run_twitch():
         try:
+            print("🎮 Starting Twitch bot...")
             twitch = SharanTwitchBot()
             await twitch.start_bot()
+        except asyncio.CancelledError:
+            print("🎮 Twitch bot shut down cleanly")
         except Exception as e:
             print("❌ Twitch bot crashed:", e)
 
     async def run_discord():
         try:
+            print("🤖 Starting Discord bot...")
             await start_discord_async()
+        except asyncio.CancelledError:
+            print("🤖 Discord bot shut down cleanly")
         except Exception as e:
             print("❌ Discord bot crashed:", e)
 
-    asyncio.create_task(run_twitch())
-    asyncio.create_task(run_discord())
+    # Start bots as background tasks
+    background_tasks.append(asyncio.create_task(run_twitch()))
+    background_tasks.append(asyncio.create_task(run_discord()))
 
-    yield  # App is live here
+    yield  # ⬅️ Application is LIVE here
 
     print("🛑 Shutting down Sharan services...")
+
+    # Gracefully cancel background tasks
+    for task in background_tasks:
+        task.cancel()
+
+    await asyncio.gather(*background_tasks, return_exceptions=True)
 
 
 app = FastAPI(lifespan=lifespan)

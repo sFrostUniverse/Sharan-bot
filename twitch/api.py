@@ -1,76 +1,99 @@
 import os
 import time
-import requests
+import aiohttp
 from dotenv import load_dotenv
 
-load_dotenv()  # 🔥 THIS WAS MISSING
+load_dotenv()
 
 TWITCH_CLIENT_ID = os.getenv("TWITCH_CLIENT_ID")
 TWITCH_CLIENT_SECRET = os.getenv("TWITCH_CLIENT_SECRET")
 
-_token = None
-_token_expiry = 0
+_token: str | None = None
+_token_expiry: float = 0.0
 
 
-def get_app_token():
+# =========================
+# 🔑 APP ACCESS TOKEN
+# =========================
+
+async def get_app_token() -> str:
+    """
+    Fetch (or reuse) Twitch App Access Token.
+    Uses async HTTP to avoid blocking the event loop.
+    """
     global _token, _token_expiry
 
     if _token and time.time() < _token_expiry:
         return _token
 
     url = "https://id.twitch.tv/oauth2/token"
-
     payload = {
         "client_id": TWITCH_CLIENT_ID,
         "client_secret": TWITCH_CLIENT_SECRET,
-        "grant_type": "client_credentials"
+        "grant_type": "client_credentials",
     }
 
-    resp = requests.post(url, data=payload)
-    data = resp.json()
-
-    # 🔎 DEBUG (temporary, but VERY useful)
-    print("TWITCH OAUTH RESPONSE:", data)
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, data=payload) as resp:
+            data = await resp.json()
 
     if "access_token" not in data:
-        raise RuntimeError("Failed to obtain Twitch app access token")
+        raise RuntimeError(f"Failed to obtain Twitch token: {data}")
 
     _token = data["access_token"]
     _token_expiry = time.time() + data["expires_in"] - 60
+
+    print("🟣 Twitch app token refreshed")
+
     return _token
 
 
-def get_stream_info(broadcaster_login: str):
-    token = get_app_token()
+# =========================
+# 📡 STREAM INFO
+# =========================
+
+async def get_stream_info(broadcaster_login: str) -> dict | None:
+    """
+    Returns stream title & game if LIVE, else None.
+    Fully async, non-blocking.
+    """
+    token = await get_app_token()
+
     headers = {
         "Client-ID": TWITCH_CLIENT_ID,
-        "Authorization": f"Bearer {token}"
+        "Authorization": f"Bearer {token}",
     }
 
-    # 1️⃣ Get user ID
-    user_resp = requests.get(
-        "https://api.twitch.tv/helix/users",
-        headers=headers,
-        params={"login": broadcaster_login}
-    )
-    user_data = user_resp.json()["data"]
-    if not user_data:
-        return None
+    async with aiohttp.ClientSession() as session:
+        # 1️⃣ Get user ID
+        async with session.get(
+            "https://api.twitch.tv/helix/users",
+            headers=headers,
+            params={"login": broadcaster_login},
+        ) as user_resp:
+            user_json = await user_resp.json()
 
-    user_id = user_data[0]["id"]
+        user_data = user_json.get("data", [])
+        if not user_data:
+            return None
 
-    # 2️⃣ Get stream info
-    stream_resp = requests.get(
-        "https://api.twitch.tv/helix/streams",
-        headers=headers,
-        params={"user_id": user_id}
-    )
-    stream_data = stream_resp.json()["data"]
+        user_id = user_data[0]["id"]
 
+        # 2️⃣ Get stream info
+        async with session.get(
+            "https://api.twitch.tv/helix/streams",
+            headers=headers,
+            params={"user_id": user_id},
+        ) as stream_resp:
+            stream_json = await stream_resp.json()
+
+    stream_data = stream_json.get("data", [])
     if not stream_data:
         return None
 
+    stream = stream_data[0]
+
     return {
-        "title": stream_data[0]["title"],
-        "game": stream_data[0]["game_name"]
+        "title": stream.get("title", "Untitled Stream"),
+        "game": stream.get("game_name", "Just Chatting"),
     }

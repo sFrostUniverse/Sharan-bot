@@ -6,11 +6,10 @@ from twitch.greetings import stream_start_message
 
 load_dotenv()
 
-twitch_bot_instance = None
+twitch_bot_instance: "SharanTwitchBot | None" = None
 
 
 class SharanTwitchBot(commands.Bot):
-
     def __init__(self):
         super().__init__(
             token=os.getenv("TWITCH_TOKEN"),
@@ -18,64 +17,69 @@ class SharanTwitchBot(commands.Bot):
             client_secret=os.getenv("TWITCH_CLIENT_SECRET"),
             bot_id=os.getenv("TWITCH_BOT_ID"),
             prefix="!",
-            initial_channels=[os.getenv("TWITCH_CHAT_CHANNEL")]
+            initial_channels=[os.getenv("TWITCH_CHAT_CHANNEL")],
         )
 
     async def start_bot(self):
+        print("🟣 Starting Twitch chat bot...")
         await super().start()
 
+    # =========================
+    # 🎮 EVENTS (MUST BE INSIDE CLASS)
+    # =========================
 
+    async def event_ready(self):
+        global twitch_bot_instance
+        twitch_bot_instance = self
 
-async def event_ready(self):
-    global twitch_bot_instance
-    twitch_bot_instance = self
+        print("🟣 Twitch chat connected")
+        print(f"Logged in as: {self.nick}")
+        print("TWITCH_CHAT_CHANNEL =", repr(os.getenv("TWITCH_CHAT_CHANNEL")))
 
-    print("🟣 Twitch chat connected (v2.8.2)")
-    print("Logged in to Twitch chat successfully")
-    print("TWITCH_CHAT_CHANNEL =", repr(os.getenv("TWITCH_CHAT_CHANNEL")))
+    async def event_message(self, message):
+        if message.echo:
+            return
 
-
-
-async def event_message(self, message):
-    if message.echo:
-        return
-
-    print(
-        f"[TWITCH MESSAGE] "
-        f"user={message.author.name} "
-        f"content={repr(message.content)}"
-    )
-
-    content = message.content.lower().strip()
-
-    if content == "hello":
-        await message.channel.send(
-            f"Hello @{message.author.name} 💜 I am Sharan!"
+        print(
+            f"[TWITCH MESSAGE] "
+            f"user={message.author.name} "
+            f"content={repr(message.content)}"
         )
 
-    elif content == "!hello":
-        await message.channel.send(
-            f"Hello @{message.author.name} 💜 I am Sharan!"
-        )
+        content = message.content.lower().strip()
 
-    elif content == "!discord":
-        await message.channel.send(
-            "💜 Join our Discord here: https://discord.gg/33Gsen7xhY"
-        )
+        if content in {"hello", "!hello"}:
+            await message.channel.send(
+                f"Hello @{message.author.name} 💜 I am Sharan!"
+            )
 
-    elif content == "!live":
-        msg = await stream_start_message()
-        await message.channel.send(msg)
+        elif content == "!discord":
+            await message.channel.send(
+                "💜 Join our Discord here: https://discord.gg/33Gsen7xhY"
+            )
 
-    # 🔑 REQUIRED IN TWITCHIO v2
-    await self.handle_commands(message)
+        elif content == "!live":
+            msg = await stream_start_message()
+            await message.channel.send(msg)
+
+        # 🔑 REQUIRED FOR COMMAND PROCESSING
+        await self.handle_commands(message)
 
 
+# =========================
+# 📤 EXTERNAL SEND HELPER
+# =========================
 
 async def send_chat_message(text: str):
-    if twitch_bot_instance:
-        channel = twitch_bot_instance.get_channel(
-            os.getenv("TWITCH_CHAT_CHANNEL")
-        )
-        if channel:
-            await channel.send(text)
+    if not twitch_bot_instance:
+        print("⚠️ Twitch bot not ready yet")
+        return
+
+    channel_name = os.getenv("TWITCH_CHAT_CHANNEL")
+    channel = twitch_bot_instance.get_channel(channel_name)
+
+    if not channel:
+        print(f"⚠️ Twitch channel not found: {channel_name}")
+        return
+
+    await channel.send(text)

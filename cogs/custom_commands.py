@@ -2,14 +2,16 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
+
 class SayCommand(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
 
     @app_commands.command(
         name="say",
         description="(Admin Only) Make the bot send a message to a channel or here."
     )
+    @app_commands.guild_only()  # ✅ REQUIRED for permission checks
     @app_commands.checks.has_permissions(administrator=True)
     @app_commands.describe(
         message="Enter the message (supports emojis or GIFs)",
@@ -20,17 +22,19 @@ class SayCommand(commands.Cog):
         self,
         interaction: discord.Interaction,
         message: str,
-        channel: discord.TextChannel = None,
-        reply_to: str = None
+        channel: discord.TextChannel | None = None,
+        reply_to: str | None = None
     ):
         """Send a message as the bot."""
 
-        # 🔥 Log FIRST (this always works)
-        user = interaction.user
-        print(f"🔔 /say executed by: {user} | Display Name: {user.display_name} | ID: {user.id}")
-
-        # Acknowledge early
+        # ✅ IMMEDIATELY acknowledge the interaction
         await interaction.response.defer(ephemeral=True)
+
+        user = interaction.user
+        print(
+            f"🔔 /say executed by: {user} "
+            f"| Display Name: {user.display_name} | ID: {user.id}"
+        )
 
         target_channel = channel or interaction.channel
 
@@ -63,17 +67,33 @@ class SayCommand(commands.Cog):
             )
 
     async def cog_app_command_error(
-        self, interaction: discord.Interaction, error: app_commands.AppCommandError
+        self,
+        interaction: discord.Interaction,
+        error: app_commands.AppCommandError
     ):
+        """
+        Global error handler for this cog.
+        Safely handles cases where the interaction
+        was already deferred.
+        """
+
+        # Decide how we are allowed to respond
+        if interaction.response.is_done():
+            sender = interaction.followup.send
+        else:
+            sender = interaction.response.send_message
+
         if isinstance(error, app_commands.MissingPermissions):
-            await interaction.response.send_message(
-                "⚠️ Only **Admins** can use this command.", ephemeral=True
+            await sender(
+                "⚠️ Only **Admins** can use this command.",
+                ephemeral=True
             )
         else:
-            await interaction.response.send_message(
-                f"❌ Error: {error}", ephemeral=True
+            await sender(
+                f"❌ Error: {error}",
+                ephemeral=True
             )
 
 
-async def setup(bot):
+async def setup(bot: commands.Bot):
     await bot.add_cog(SayCommand(bot))

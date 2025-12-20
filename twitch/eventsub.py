@@ -9,42 +9,71 @@ app = FastAPI()
 
 EVENTSUB_SECRET = os.getenv("TWITCH_EVENTSUB_SECRET")
 
-def verify_signature(message_id, timestamp, body, signature):
-    msg = message_id + timestamp + body
-    expected = "sha256=" + hmac.new(
+if not EVENTSUB_SECRET:
+    raise RuntimeError("TWITCH_EVENTSUB_SECRET is not set")
+
+
+# =========================
+# 🔐 SIGNATURE VERIFICATION
+# =========================
+
+def verify_signature(
+    message_id: str,
+    timestamp: str,
+    body: bytes,
+    signature: str,
+) -> bool:
+    """
+    Twitch EventSub signature verification.
+    Must use RAW BODY BYTES.
+    """
+    message = message_id.encode() + timestamp.encode() + body
+
+    expected_signature = "sha256=" + hmac.new(
         EVENTSUB_SECRET.encode(),
-        msg.encode(),
-        hashlib.sha256
+        message,
+        hashlib.sha256,
     ).hexdigest()
-    return hmac.compare_digest(expected, signature)
+
+    return hmac.compare_digest(expected_signature, signature)
+
+
+# =========================
+# 📡 EVENTSUB HANDLER
+# =========================
 
 @app.post("/eventsub")
 async def eventsub_handler(
     request: Request,
-    twitch_eventsub_message_id: str = Header(None),
-    twitch_eventsub_message_timestamp: str = Header(None),
-    twitch_eventsub_message_signature: str = Header(None),
+    twitch_eventsub_message_id: str = Header(...),
+    twitch_eventsub_message_timestamp: str = Header(...),
+    twitch_eventsub_message_signature: str = Header(...),
 ):
     body = await request.body()
-    body_str = body.decode()
 
+    # 🔐 Verify Twitch signature FIRST
     if not verify_signature(
         twitch_eventsub_message_id,
         twitch_eventsub_message_timestamp,
-        body_str,
+        body,
         twitch_eventsub_message_signature,
     ):
         raise HTTPException(status_code=403, detail="Invalid signature")
 
     payload = await request.json()
 
-    # 🔐 Verification handshake
-    if payload["subscription"]["type"] == "channel.follow":
-        if payload.get("challenge"):
-            return payload["challenge"]
+    # =========================
+    # 🔑 VERIFICATION HANDSHAKE
+    # =========================
+    if payload.get("challenge"):
+        return payload["challenge"]
 
     event_type = payload["subscription"]["type"]
-    event = payload["event"]
+    event = payload.get("event", {})
+
+    # =========================
+    # 🎯 EVENT HANDLING
+    # =========================
 
     if event_type == "channel.follow":
         msg = await follow_message(event["user_name"])
