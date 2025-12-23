@@ -1,4 +1,5 @@
 import os
+import time
 from dotenv import load_dotenv
 from twitchio.ext import commands
 
@@ -7,6 +8,25 @@ from twitch.greetings import stream_start_message
 load_dotenv()
 
 twitch_bot_instance: "SharanTwitchBot | None" = None
+
+# =========================
+# 🚫 SERVICE / PROMO FILTER
+# =========================
+SERVICE_KEYWORDS = [
+    "service",
+    "services",
+    "designer",
+    "editor",
+    "promotion",
+    "promote",
+    "dm me",
+    "hire me",
+    "freelance",
+    "work with you",
+    "discord.gg",
+    "join my discord",
+    "check my discord",
+]
 
 
 class SharanTwitchBot(commands.Bot):
@@ -20,12 +40,15 @@ class SharanTwitchBot(commands.Bot):
             initial_channels=[os.getenv("TWITCH_CHAT_CHANNEL")],
         )
 
+        # cooldown memory for polite replies
+        self.last_service_reply = {}
+
     async def start_bot(self):
         print("🟣 Starting Twitch chat bot...")
         await super().start()
 
     # =========================
-    # 🎮 EVENTS (MUST BE INSIDE CLASS)
+    # 🎮 EVENTS
     # =========================
 
     async def event_ready(self):
@@ -40,20 +63,41 @@ class SharanTwitchBot(commands.Bot):
         if message.echo:
             return
 
+        content = message.content.lower().strip()
+
         print(
             f"[TWITCH MESSAGE] "
             f"user={message.author.name} "
             f"content={repr(message.content)}"
         )
 
-        content = message.content.lower().strip()
+        # Ignore mods & broadcaster
+        if message.author.is_mod or message.author.is_broadcaster:
+            await self.handle_commands(message)
+            return
 
-        if content in {"hello", "!hello"}:
-            await message.channel.send(
-                f"Hello @{message.author.name} 💜 I am Sharan!"
-            )
+        # =========================
+        # 🚫 POLITE PROMO / SERVICE REPLY
+        # =========================
+        if any(keyword in content for keyword in SERVICE_KEYWORDS):
+            now = time.time()
+            last = self.last_service_reply.get(message.author.name, 0)
 
-        elif content == "!discord":
+            # reply only once every 10 minutes per user
+            if now - last > 600:
+                await message.channel.send(
+                    f"💜 Hey @{message.author.name}, we don’t allow promotions or service offers here. "
+                    f"Feel free to enjoy the stream and chat with us ✨"
+                )
+                self.last_service_reply[message.author.name] = now
+
+            return  # stop further processing
+
+        # =========================
+        # 🎯 BASIC COMMANDS
+        # =========================
+
+        if content == "!discord":
             await message.channel.send(
                 "💜 Join our Discord here: https://discord.gg/33Gsen7xhY"
             )
