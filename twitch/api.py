@@ -7,6 +7,8 @@ load_dotenv()
 
 TWITCH_CLIENT_ID = os.getenv("TWITCH_CLIENT_ID")
 TWITCH_CLIENT_SECRET = os.getenv("TWITCH_CLIENT_SECRET")
+if not TWITCH_CLIENT_ID or not TWITCH_CLIENT_SECRET:
+    raise RuntimeError("TWITCH_CLIENT_ID or TWITCH_CLIENT_SECRET is not set")
 
 _token: str | None = None
 _token_expiry: float = 0.0

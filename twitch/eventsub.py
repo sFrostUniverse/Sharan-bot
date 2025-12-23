@@ -80,11 +80,20 @@ async def eventsub_handler(
         await send_chat_message(msg)
 
     elif event_type == "channel.subscribe":
-        msg = await sub_message(event["user_name"])
+        username = event["user_name"]
+        months = event.get("cumulative_months", 1)
+        tier = event.get("tier", "1")
+
+        if months > 1:
+            msg = f"💜 Welcome back @{username}! Thanks for resubbing ✨"
+        else:
+            msg = await sub_message(username, tier)
+
         await send_chat_message(msg)
 
     elif event_type == "channel.cheer":
         msg = await cheer_message(event["user_name"], event["bits"])
         await send_chat_message(msg)
+
 
     return {"status": "ok"}
