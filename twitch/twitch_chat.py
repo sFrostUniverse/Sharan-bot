@@ -72,13 +72,13 @@ class SharanTwitchBot(commands.Bot):
             f"content={repr(message.content)}"
         )
 
-        # Ignore mods & broadcaster
-        if message.author.is_mod or message.author.is_broadcaster:
-            await self.handle_commands(message)
-            return
+        # Allow commands for everyone, but skip promo filter for mods/broadcaster
+        is_staff = message.author.is_mod or message.author.is_broadcaster
+
 
         # 🚫 POLITE PROMO / SERVICE REPLY
-        if any(keyword in content for keyword in SERVICE_KEYWORDS):
+        if not is_staff and any(keyword in content for keyword in SERVICE_KEYWORDS):
+
             now = time.time()
             last = self.last_service_reply.get(message.author.name, 0)
 
