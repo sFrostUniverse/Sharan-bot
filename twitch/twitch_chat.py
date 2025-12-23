@@ -1,13 +1,17 @@
 import os
 import time
+import asyncio
 from dotenv import load_dotenv
 from twitchio.ext import commands
+
 
 from twitch.greetings import stream_start_message
 
 load_dotenv()
 
 twitch_bot_instance: "SharanTwitchBot | None" = None
+twitch_ready = False
+
 
 # =========================
 # 🚫 SERVICE / PROMO FILTER
@@ -52,12 +56,12 @@ class SharanTwitchBot(commands.Bot):
     # =========================
 
     async def event_ready(self):
-        global twitch_bot_instance
+        global twitch_bot_instance, twitch_ready
         twitch_bot_instance = self
+        twitch_ready = True
 
         print("🟣 Twitch chat connected")
         print(f"Logged in as: {self.nick}")
-        print("TWITCH_CHAT_CHANNEL =", repr(os.getenv("TWITCH_CHAT_CHANNEL")))
 
     async def event_message(self, message):
         if message.echo:
@@ -114,16 +118,25 @@ class SharanTwitchBot(commands.Bot):
 # 📤 EXTERNAL SEND HELPER
 # =========================
 
-async def send_chat_message(text: str):
-    if not twitch_bot_instance:
-        print("⚠️ Twitch bot not ready yet")
-        return
+    async def send_chat_message(text: str):
+        global twitch_ready
 
-    channel_name = os.getenv("TWITCH_CHAT_CHANNEL")
-    channel = twitch_bot_instance.get_channel(channel_name)
+        # wait up to 10 seconds for Twitch chat to be ready
+        for _ in range(20):
+            if twitch_ready:
+                break
+            await asyncio.sleep(0.5)
 
-    if not channel:
-        print(f"⚠️ Twitch channel not found: {channel_name}")
-        return
+        if not twitch_ready or not twitch_bot_instance:
+            print("⚠️ Twitch bot not ready, dropping auto message")
+            return
 
-    await channel.send(text)
+        channel_name = os.getenv("TWITCH_CHAT_CHANNEL")
+        channel = twitch_bot_instance.get_channel(channel_name)
+
+        if not channel:
+            print(f"⚠️ Twitch channel not found: {channel_name}")
+            return
+
+        await channel.send(text)
+

@@ -4,6 +4,7 @@ from fastapi import FastAPI, Response
 from dotenv import load_dotenv
 
 from twitch.twitch_chat import SharanTwitchBot
+from twitch.eventsub import router as eventsub_router
 from discord_bot import start_discord_async
 
 load_dotenv()
@@ -50,13 +51,23 @@ async def lifespan(app: FastAPI):
     await asyncio.gather(*background_tasks, return_exceptions=True)
 
 
+# =========================
+# 🌐 FASTAPI APP
+# =========================
+
 app = FastAPI(lifespan=lifespan)
 
+# 🔗 Mount EventSub routes
+app.include_router(eventsub_router)
+
+
+# =========================
+# ❤️ HEALTH CHECK ROUTES
+# =========================
 
 @app.get("/")
 async def root():
     return {"status": "Sharan is alive"}
-
 
 @app.head("/")
 async def head_root():
