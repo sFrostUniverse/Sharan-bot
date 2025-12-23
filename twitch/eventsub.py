@@ -4,6 +4,8 @@ import hashlib
 from fastapi import FastAPI, Request, Header, HTTPException
 from twitch.greetings import follow_message, sub_message, cheer_message
 from twitch.twitch_chat import send_chat_message
+from twitch.greetings import stream_start_message
+
 
 app = FastAPI()
 
@@ -76,7 +78,7 @@ async def eventsub_handler(
     # =========================
 
     if event_type == "channel.follow":
-        msg = await follow_message(event["user_name"])
+        msg = follow_message(event["user_name"])
         await send_chat_message(msg)
 
     elif event_type == "channel.subscribe":
@@ -87,12 +89,16 @@ async def eventsub_handler(
         if months > 1:
             msg = f"💜 Welcome back @{username}! Thanks for resubbing ✨"
         else:
-            msg = await sub_message(username, tier)
+            msg = sub_message(username, tier)
 
         await send_chat_message(msg)
 
     elif event_type == "channel.cheer":
-        msg = await cheer_message(event["user_name"], event["bits"])
+        msg = cheer_message(event["user_name"], event["bits"])
+        await send_chat_message(msg)
+
+    elif event_type == "stream.online":
+        msg = await stream_start_message()
         await send_chat_message(msg)
 
 
