@@ -1,50 +1,27 @@
 import os
 import hmac
 import hashlib
-from fastapi import FastAPI, Request, Header, HTTPException
-from twitch.greetings import follow_message, sub_message, cheer_message
-from twitch.twitch_chat import send_chat_message
-from twitch.greetings import stream_start_message
+from fastapi import APIRouter, Request, Header, HTTPException
+from twitch.greetings import follow_message, sub_message, cheer_message, stream_start_message
 
-
-app = FastAPI()
+router = APIRouter()
 
 EVENTSUB_SECRET = os.getenv("TWITCH_EVENTSUB_SECRET")
-
 if not EVENTSUB_SECRET:
     raise RuntimeError("TWITCH_EVENTSUB_SECRET is not set")
 
 
-# =========================
-# 🔐 SIGNATURE VERIFICATION
-# =========================
-
-def verify_signature(
-    message_id: str,
-    timestamp: str,
-    body: bytes,
-    signature: str,
-) -> bool:
-    """
-    Twitch EventSub signature verification.
-    Must use RAW BODY BYTES.
-    """
+def verify_signature(message_id: str, timestamp: str, body: bytes, signature: str) -> bool:
     message = message_id.encode() + timestamp.encode() + body
-
-    expected_signature = "sha256=" + hmac.new(
+    expected = "sha256=" + hmac.new(
         EVENTSUB_SECRET.encode(),
         message,
         hashlib.sha256,
     ).hexdigest()
+    return hmac.compare_digest(expected, signature)
 
-    return hmac.compare_digest(expected_signature, signature)
 
-
-# =========================
-# 📡 EVENTSUB HANDLER
-# =========================
-
-@app.post("/eventsub")
+@router.post("/eventsub")
 async def eventsub_handler(
     request: Request,
     twitch_eventsub_message_id: str = Header(...),
@@ -53,7 +30,6 @@ async def eventsub_handler(
 ):
     body = await request.body()
 
-    # 🔐 Verify Twitch signature FIRST
     if not verify_signature(
         twitch_eventsub_message_id,
         twitch_eventsub_message_timestamp,
@@ -64,22 +40,18 @@ async def eventsub_handler(
 
     payload = await request.json()
 
-    # =========================
-    # 🔑 VERIFICATION HANDSHAKE
-    # =========================
+    # Verification handshake
     if payload.get("challenge"):
         return payload["challenge"]
 
     event_type = payload["subscription"]["type"]
     event = payload.get("event", {})
 
-    # =========================
-    # 🎯 EVENT HANDLING
-    # =========================
+    # 🔁 SAFE late import (fixes circular import)
+    from twitch.twitch_chat import send_chat_message
 
     if event_type == "channel.follow":
-        msg = follow_message(event["user_name"])
-        await send_chat_message(msg)
+        await send_chat_message(follow_message(event["user_name"]))
 
     elif event_type == "channel.subscribe":
         username = event["user_name"]
@@ -94,12 +66,9 @@ async def eventsub_handler(
         await send_chat_message(msg)
 
     elif event_type == "channel.cheer":
-        msg = cheer_message(event["user_name"], event["bits"])
-        await send_chat_message(msg)
+        await send_chat_message(cheer_message(event["user_name"], event["bits"]))
 
     elif event_type == "stream.online":
-        msg = await stream_start_message()
-        await send_chat_message(msg)
-
+        await send_chat_message(await stream_start_message())
 
     return {"status": "ok"}
