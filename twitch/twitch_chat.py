@@ -4,14 +4,12 @@ import asyncio
 from dotenv import load_dotenv
 from twitchio.ext import commands
 
-
 from twitch.greetings import stream_start_message
 
 load_dotenv()
 
 twitch_bot_instance: "SharanTwitchBot | None" = None
 twitch_ready = False
-
 
 # =========================
 # 🚫 SERVICE / PROMO FILTER
@@ -44,7 +42,6 @@ class SharanTwitchBot(commands.Bot):
             initial_channels=[os.getenv("TWITCH_CHAT_CHANNEL")],
         )
 
-        # cooldown memory for polite replies
         self.last_service_reply = {}
 
     async def start_bot(self):
@@ -80,14 +77,11 @@ class SharanTwitchBot(commands.Bot):
             await self.handle_commands(message)
             return
 
-        # =========================
         # 🚫 POLITE PROMO / SERVICE REPLY
-        # =========================
         if any(keyword in content for keyword in SERVICE_KEYWORDS):
             now = time.time()
             last = self.last_service_reply.get(message.author.name, 0)
 
-            # reply only once every 10 minutes per user
             if now - last > 600:
                 await message.channel.send(
                     f"💜 Hey @{message.author.name}, we don’t allow promotions or service offers here. "
@@ -95,12 +89,9 @@ class SharanTwitchBot(commands.Bot):
                 )
                 self.last_service_reply[message.author.name] = now
 
-            return  # stop further processing
+            return
 
-        # =========================
         # 🎯 BASIC COMMANDS
-        # =========================
-
         if content == "!discord":
             await message.channel.send(
                 "💜 Join our Discord here: https://discord.gg/33Gsen7xhY"
@@ -110,33 +101,36 @@ class SharanTwitchBot(commands.Bot):
             msg = await stream_start_message()
             await message.channel.send(msg)
 
-        # 🔑 REQUIRED FOR COMMAND PROCESSING
         await self.handle_commands(message)
+
+    # 🔕 Ignore missing TwitchIO commands
+    async def event_command_error(self, ctx, error):
+        if isinstance(error, commands.CommandNotFound):
+            return
 
 
 # =========================
 # 📤 EXTERNAL SEND HELPER
 # =========================
 
-    async def send_chat_message(text: str):
-        global twitch_ready
+async def send_chat_message(text: str):
+    global twitch_ready
 
-        # wait up to 10 seconds for Twitch chat to be ready
-        for _ in range(20):
-            if twitch_ready:
-                break
-            await asyncio.sleep(0.5)
+    # wait up to 10 seconds for Twitch chat to be ready
+    for _ in range(20):
+        if twitch_ready:
+            break
+        await asyncio.sleep(0.5)
 
-        if not twitch_ready or not twitch_bot_instance:
-            print("⚠️ Twitch bot not ready, dropping auto message")
-            return
+    if not twitch_ready or not twitch_bot_instance:
+        print("⚠️ Twitch bot not ready, dropping auto message")
+        return
 
-        channel_name = os.getenv("TWITCH_CHAT_CHANNEL")
-        channel = twitch_bot_instance.get_channel(channel_name)
+    channel_name = os.getenv("TWITCH_CHAT_CHANNEL")
+    channel = twitch_bot_instance.get_channel(channel_name)
 
-        if not channel:
-            print(f"⚠️ Twitch channel not found: {channel_name}")
-            return
+    if not channel:
+        print(f"⚠️ Twitch channel not found: {channel_name}")
+        return
 
-        await channel.send(text)
-
+    await channel.send(text)
