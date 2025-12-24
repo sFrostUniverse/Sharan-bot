@@ -27,7 +27,8 @@ SERVICE_KEYWORDS = [
     "work with you",
     "discord.gg",
     "join my discord",
-    "check my discord",
+    "check my discord"
+    "discord",
 ]
 
 

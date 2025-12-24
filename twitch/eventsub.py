@@ -1,8 +1,21 @@
 import os
 import hmac
 import hashlib
+from pathlib import Path
 from fastapi import APIRouter, Request, Header, HTTPException
-from twitch.greetings import follow_message, sub_message, cheer_message, stream_start_message
+from dotenv import load_dotenv
+from twitch.greetings import (
+    follow_message,
+    sub_message,
+    cheer_message,
+    stream_start_message,
+)
+
+# =========================
+# LOAD ENV (IMPORTANT FIX)
+# =========================
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
 
 router = APIRouter()
 
@@ -10,6 +23,9 @@ EVENTSUB_SECRET = os.getenv("TWITCH_EVENTSUB_SECRET")
 if not EVENTSUB_SECRET:
     raise RuntimeError("TWITCH_EVENTSUB_SECRET is not set")
 
+# =========================
+# SIGNATURE VERIFICATION
+# =========================
 
 def verify_signature(message_id: str, timestamp: str, body: bytes, signature: str) -> bool:
     message = message_id.encode() + timestamp.encode() + body
@@ -20,6 +36,9 @@ def verify_signature(message_id: str, timestamp: str, body: bytes, signature: st
     ).hexdigest()
     return hmac.compare_digest(expected, signature)
 
+# =========================
+# EVENTSUB ENDPOINT
+# =========================
 
 @router.post("/eventsub")
 async def eventsub_handler(
@@ -40,15 +59,19 @@ async def eventsub_handler(
 
     payload = await request.json()
 
-    # Verification handshake
+    # 🔑 Verification handshake
     if payload.get("challenge"):
         return payload["challenge"]
 
     event_type = payload["subscription"]["type"]
     event = payload.get("event", {})
 
-    # 🔁 SAFE late import (fixes circular import)
+    # 🔁 Late import to avoid circular dependency
     from twitch.twitch_chat import send_chat_message
+
+    # =========================
+    # EVENT HANDLING
+    # =========================
 
     if event_type == "channel.follow":
         await send_chat_message(follow_message(event["user_name"]))
@@ -66,7 +89,9 @@ async def eventsub_handler(
         await send_chat_message(msg)
 
     elif event_type == "channel.cheer":
-        await send_chat_message(cheer_message(event["user_name"], event["bits"]))
+        await send_chat_message(
+            cheer_message(event["user_name"], event["bits"])
+        )
 
     elif event_type == "stream.online":
         await send_chat_message(await stream_start_message())
