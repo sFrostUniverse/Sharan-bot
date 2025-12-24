@@ -12,7 +12,7 @@ from twitch.greetings import (
 )
 
 # =========================
-# LOAD ENV (IMPORTANT FIX)
+# LOAD ENV (IMPORTANT)
 # =========================
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
@@ -66,14 +66,17 @@ async def eventsub_handler(
     event_type = payload["subscription"]["type"]
     event = payload.get("event", {})
 
-    # 🔁 Late import to avoid circular dependency
+    # 🔁 SAFE late import (queue-based)
     from twitch.twitch_chat import send_chat_message
 
     # =========================
     # EVENT HANDLING
     # =========================
 
-    if event_type == "channel.follow":
+    if event_type == "stream.online":
+        await send_chat_message(await stream_start_message())
+
+    elif event_type == "channel.follow":
         await send_chat_message(follow_message(event["user_name"]))
 
     elif event_type == "channel.subscribe":
@@ -92,8 +95,5 @@ async def eventsub_handler(
         await send_chat_message(
             cheer_message(event["user_name"], event["bits"])
         )
-
-    elif event_type == "stream.online":
-        await send_chat_message(await stream_start_message())
 
     return {"status": "ok"}

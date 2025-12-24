@@ -1,15 +1,19 @@
 import os
-import time
 import asyncio
+import time
 from dotenv import load_dotenv
 from twitchio.ext import commands
-
 from twitch.greetings import stream_start_message
 
 load_dotenv()
 
+# =========================
+# 🌐 GLOBAL BOT STATE
+# =========================
 twitch_bot_instance: "SharanTwitchBot | None" = None
-twitch_ready = False
+
+# 🔁 ASYNC MESSAGE QUEUE (CRITICAL FIX)
+message_queue: asyncio.Queue[str] = asyncio.Queue()
 
 # =========================
 # 🚫 SERVICE / PROMO FILTER
@@ -27,8 +31,7 @@ SERVICE_KEYWORDS = [
     "work with you",
     "discord.gg",
     "join my discord",
-    "check my discord"
-    "discord",
+    "check my discord",
 ]
 
 
@@ -54,9 +57,11 @@ class SharanTwitchBot(commands.Bot):
     # =========================
 
     async def event_ready(self):
-        global twitch_bot_instance, twitch_ready
+        global twitch_bot_instance
         twitch_bot_instance = self
-        twitch_ready = True
+
+        # 🔁 START QUEUE SENDER LOOP (CRITICAL)
+        self.loop.create_task(self._message_sender())
 
         print("🟣 Twitch chat connected")
         print(f"Logged in as: {self.nick}")
@@ -73,26 +78,24 @@ class SharanTwitchBot(commands.Bot):
             f"content={repr(message.content)}"
         )
 
-        # Allow commands for everyone, but skip promo filter for mods/broadcaster
-        is_staff = message.author.is_mod or message.author.is_broadcaster
+        # Ignore mods & broadcaster for promo filter
+        if not (message.author.is_mod or message.author.is_broadcaster):
+            if any(keyword in content for keyword in SERVICE_KEYWORDS):
+                now = time.time()
+                last = self.last_service_reply.get(message.author.name, 0)
 
+                if now - last > 600:
+                    await message.channel.send(
+                        f"💜 Hey @{message.author.name}, we don’t allow promotions here. "
+                        f"Enjoy the stream ✨"
+                    )
+                    self.last_service_reply[message.author.name] = now
 
-        # 🚫 POLITE PROMO / SERVICE REPLY
-        if not is_staff and any(keyword in content for keyword in SERVICE_KEYWORDS):
+                return
 
-            now = time.time()
-            last = self.last_service_reply.get(message.author.name, 0)
-
-            if now - last > 600:
-                await message.channel.send(
-                    f"💜 Hey @{message.author.name}, we don’t allow promotions or service offers here. "
-                    f"Feel free to enjoy the stream and chat with us ✨"
-                )
-                self.last_service_reply[message.author.name] = now
-
-            return
-
+        # =========================
         # 🎯 BASIC COMMANDS
+        # =========================
         if content == "!discord":
             await message.channel.send(
                 "💜 Join our Discord here: https://discord.gg/33Gsen7xhY"
@@ -104,34 +107,22 @@ class SharanTwitchBot(commands.Bot):
 
         await self.handle_commands(message)
 
-    # 🔕 Ignore missing TwitchIO commands
-    async def event_command_error(self, ctx, error):
-        if isinstance(error, commands.CommandNotFound):
-            return
+    # =========================
+    # 🔁 MESSAGE SENDER LOOP
+    # =========================
+
+    async def _message_sender(self):
+        while True:
+            msg = await message_queue.get()
+
+            channel = self.get_channel(os.getenv("TWITCH_CHAT_CHANNEL"))
+            if channel:
+                await channel.send(msg)
 
 
 # =========================
-# 📤 EXTERNAL SEND HELPER
+# 📤 SAFE EXTERNAL SEND (USED BY EVENTSUB)
 # =========================
 
 async def send_chat_message(text: str):
-    global twitch_ready
-
-    # wait up to 10 seconds for Twitch chat to be ready
-    for _ in range(20):
-        if twitch_ready:
-            break
-        await asyncio.sleep(0.5)
-
-    if not twitch_ready or not twitch_bot_instance:
-        print("⚠️ Twitch bot not ready, dropping auto message")
-        return
-
-    channel_name = os.getenv("TWITCH_CHAT_CHANNEL")
-    channel = twitch_bot_instance.get_channel(channel_name)
-
-    if not channel:
-        print(f"⚠️ Twitch channel not found: {channel_name}")
-        return
-
-    await channel.send(text)
+    await message_queue.put(text)
