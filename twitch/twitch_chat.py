@@ -55,16 +55,21 @@ class SharanTwitchBot(commands.Bot):
     # =========================
     # 🎮 EVENTS
     # =========================
-
     async def event_ready(self):
         global twitch_bot_instance
         twitch_bot_instance = self
 
-        # 🔁 START QUEUE SENDER LOOP (CRITICAL)
+        # start message sender loop
         self.loop.create_task(self._message_sender())
 
         print("🟣 Twitch chat connected")
         print(f"Logged in as: {self.nick}")
+
+        # 🔴 AUTO LIVE MESSAGE (SAME AS !live)
+        msg = await stream_start_message()
+        if "LIVE" in msg:
+            await send_chat_message(msg)
+
 
     async def event_message(self, message):
         if message.echo:
