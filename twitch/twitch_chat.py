@@ -3,8 +3,11 @@ import asyncio
 import time
 from dotenv import load_dotenv
 from twitchio.ext import commands
-from twitch.greetings import stream_start_message
+
+from twitch.medal import handle_medal
 from twitch.games import handle_kill
+from twitch.greetings import stream_start_message
+
 
 
 load_dotenv()
@@ -14,7 +17,7 @@ load_dotenv()
 # =========================
 twitch_bot_instance: "SharanTwitchBot | None" = None
 
-# 🔁 ASYNC MESSAGE QUEUE (CRITICAL FIX)
+# 🔁 ASYNC MESSAGE QUEUE
 message_queue: asyncio.Queue[str] = asyncio.Queue()
 
 # =========================
@@ -47,7 +50,6 @@ class SharanTwitchBot(commands.Bot):
             prefix="!",
             initial_channels=[os.getenv("TWITCH_CHAT_CHANNEL")],
         )
-
         self.last_service_reply = {}
 
     async def start_bot(self):
@@ -67,32 +69,37 @@ class SharanTwitchBot(commands.Bot):
         print("🟣 Twitch chat connected")
         print(f"Logged in as: {self.nick}")
 
-        # 🔴 AUTO LIVE MESSAGE (SAME AS !live)
+        # 🔴 AUTO LIVE MESSAGE (same as !live)
         msg = await stream_start_message()
         if "LIVE" in msg:
             await send_chat_message(msg)
-
 
     async def event_message(self, message):
         if message.echo:
             return
 
-        content = message.content.lower().strip()
+        raw_content = message.content.strip()
+        content = raw_content.lower()
 
         print(
-            f"[TWITCH MESSAGE] "
-            f"user={message.author.name} "
-            f"content={repr(message.content)}"
+            f"[TWITCH MESSAGE] user={message.author.name} content={repr(raw_content)}"
         )
+
         # =========================
-        # 🎮 CHAT GAMES
+        # 🥇 MEDALS (EVERYONE)
         # =========================
-        handled = await handle_kill(message, message.content)
-        if handled:
+        if await handle_medal(message, raw_content):
             return
 
+        # =========================
+        # 🎮 CHAT GAMES (EVERYONE)
+        # =========================
+        if await handle_kill(message, raw_content):
+            return
 
-        # Ignore mods & broadcaster for promo filter
+        # =========================
+        # 🚫 PROMO FILTER (VIEWERS ONLY)
+        # =========================
         if not (message.author.is_mod or message.author.is_broadcaster):
             if any(keyword in content for keyword in SERVICE_KEYWORDS):
                 now = time.time()
@@ -100,11 +107,9 @@ class SharanTwitchBot(commands.Bot):
 
                 if now - last > 600:
                     await message.channel.send(
-                        f"💜 Hey @{message.author.name}, we don’t allow promotions here. "
-                        f"Enjoy the stream ✨"
+                        f"💜 Hey @{message.author.name}, we don’t allow promotions here. Enjoy the stream ✨"
                     )
                     self.last_service_reply[message.author.name] = now
-
                 return
 
         # =========================
@@ -114,21 +119,19 @@ class SharanTwitchBot(commands.Bot):
             await message.channel.send(
                 "💜 Join our Discord here: https://discord.gg/33Gsen7xhY"
             )
+            return
 
-        elif content == "!live":
+        if content == "!live":
             msg = await stream_start_message()
             await message.channel.send(msg)
-
-        await self.handle_commands(message)
+            return
 
     # =========================
     # 🔁 MESSAGE SENDER LOOP
     # =========================
-
     async def _message_sender(self):
         while True:
             msg = await message_queue.get()
-
             channel = self.get_channel(os.getenv("TWITCH_CHAT_CHANNEL"))
             if channel:
                 await channel.send(msg)
@@ -137,6 +140,5 @@ class SharanTwitchBot(commands.Bot):
 # =========================
 # 📤 SAFE EXTERNAL SEND (USED BY EVENTSUB)
 # =========================
-
 async def send_chat_message(text: str):
     await message_queue.put(text)
