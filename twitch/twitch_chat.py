@@ -4,6 +4,8 @@ import time
 from dotenv import load_dotenv
 from twitchio.ext import commands
 from twitch.greetings import stream_start_message
+from twitch.games import handle_kill
+
 
 load_dotenv()
 
@@ -82,6 +84,13 @@ class SharanTwitchBot(commands.Bot):
             f"user={message.author.name} "
             f"content={repr(message.content)}"
         )
+        # =========================
+        # 🎮 CHAT GAMES
+        # =========================
+        handled = await handle_kill(message, message.content)
+        if handled:
+            return
+
 
         # Ignore mods & broadcaster for promo filter
         if not (message.author.is_mod or message.author.is_broadcaster):

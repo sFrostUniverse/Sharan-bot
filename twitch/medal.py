@@ -36,7 +36,12 @@ def reset_medals():
 # =========================
 
 async def handle_medal(message, content: str) -> bool:
+    # normalize input:
+    # - lowercase
+    # - remove leading "!"
     word = content.lower().strip()
+    if word.startswith("!"):
+        word = word[1:]
 
     # Not a medal keyword
     if word not in medals:
