@@ -4,7 +4,7 @@ import time
 from dotenv import load_dotenv
 from twitchio.ext import commands
 
-from twitch.medal import handle_medal, reset_medals, end_stream
+from twitch.medals import handle_medal, reset_medals, end_stream
 from twitch.games import handle_kill
 from twitch.greetings import stream_start_message
 
@@ -70,10 +70,13 @@ class SharanTwitchBot(commands.Bot):
         print(f"Logged in as: {self.nick}")
 
         # 🔴 AUTO LIVE MESSAGE (same as !live)
+        # 🔥 ALWAYS enable medals when chat bot connects
+        reset_medals()
+
         msg = await stream_start_message()
-        if "LIVE" in msg:
-            reset_medals()              # 🥇 RESET + ENABLE MEDALS
-            await send_chat_message(msg)
+        await send_chat_message(msg)
+
+            
 
 
     async def event_message(self, message):

@@ -4,7 +4,7 @@ import hashlib
 from pathlib import Path
 from fastapi import APIRouter, Request, Header, HTTPException
 from dotenv import load_dotenv
-from twitch.medal import reset_medals, end_stream
+from twitch.medals import reset_medals, end_stream
 
 from twitch.greetings import (
     follow_message,
