@@ -101,5 +101,7 @@ async def eventsub_handler(
         await send_chat_message(
             cheer_message(event["user_name"], event["bits"])
         )
-
+    print("EVENTSUB PAYLOAD:", payload)
     return {"status": "ok"}
+
+

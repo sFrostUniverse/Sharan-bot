@@ -75,6 +75,10 @@ class SharanTwitchBot(commands.Bot):
         raw_content = message.content.strip()
         content = raw_content.lower()
 
+        # ❗ SAFETY: some messages have no author
+        if message.author is None:
+            return
+
         # INTERNAL CONTROL MESSAGE (from bot itself)
         if message.author.name == self.nick:
             if raw_content == "_STREAM_ON_":

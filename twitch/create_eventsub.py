@@ -71,6 +71,19 @@ payload = {
         "secret": EVENTSUB_SECRET
     }
 }
+payload_offline = {
+    "type": "stream.offline",
+    "version": "1",
+    "condition": {
+        "broadcaster_user_id": BROADCASTER_ID
+    },
+    "transport": {
+        "method": "webhook",
+        "callback": CALLBACK_URL,
+        "secret": EVENTSUB_SECRET
+    }
+}
+
 
 resp = requests.post(
     "https://api.twitch.tv/helix/eventsub/subscriptions",
@@ -84,3 +97,17 @@ resp = requests.post(
 
 print("STATUS:", resp.status_code)
 print(resp.json())
+
+resp2 = requests.post(
+    "https://api.twitch.tv/helix/eventsub/subscriptions",
+    headers={
+        "Client-ID": CLIENT_ID,
+        "Authorization": f"Bearer {ACCESS_TOKEN}",
+        "Content-Type": "application/json",
+    },
+    json=payload_offline,
+)
+
+print("OFFLINE STATUS:", resp2.status_code)
+print(resp2.json())
+
