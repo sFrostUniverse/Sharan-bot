@@ -1,10 +1,6 @@
 # twitch/medals.py
 
-# =========================
-# 🥇 MEDAL STATE (PER STREAM)
-# =========================
-
-_stream_active = False  # 🔴 medals only work when stream is live
+_stream_active = False  # chat-process state ONLY
 
 medals = {
     "first": None,
@@ -25,80 +21,58 @@ MEDAL_TEXT = {
 }
 
 # =========================
-# 🔄 STREAM LIFECYCLE
+# STREAM LIFECYCLE (CHAT SIDE)
 # =========================
-def set_stream_active(active: bool):
-    global _stream_active
-    _stream_active = active
-    print("STREAM ACTIVE =", active)
 
 def reset_medals():
-    """Clear medal winners only"""
     for key in medals:
         medals[key] = None
-    print("🥇 Medals reset")
-
-
-def enable_medals():
     global _stream_active
     _stream_active = True
-    print("🟢 Medals ENABLED (stream live)")
+    print("🟢 Stream LIVE — medals enabled & reset")
 
 
 def end_stream():
     global _stream_active
     _stream_active = False
-    reset_medals()
-    print("🔴 Stream ended — medals disabled")
-
-
-
+    for key in medals:
+        medals[key] = None
+    print("🔴 Stream OFFLINE — medals disabled & reset")
 
 # =========================
-# 🏅 HANDLE MEDAL MESSAGE
+# HANDLE MEDALS
 # =========================
 
 async def handle_medal(message, content: str) -> bool:
-    # Normalize input early
     word = content.lower().strip()
     if word.startswith("!"):
         word = word[1:]
 
-    # 🚫 Stream offline
-    if not _stream_active:
-        if word in medals:
-            await message.channel.send(
-                "🔴 Stream is offline. Medals are disabled."
-            )
-            return True
-        return False
-
-    # Not a medal keyword
     if word not in medals:
         return False
 
-    user = message.author.name
-    current_winner = medals[word]
-
-    # Medal already claimed
-    if current_winner is not None:
+    if not _stream_active:
         await message.channel.send(
-            f"{MEDAL_EMOTES[word]} {word.upper()} is already claimed by @{current_winner}!"
+            "🔴 Stream is offline. Medals are disabled."
         )
         return True
 
-    # User already claimed another medal
+    user = message.author.name
+
+    if medals[word] is not None:
+        await message.channel.send(
+            f"{MEDAL_EMOTES[word]} {word.upper()} already claimed by @{medals[word]}!"
+        )
+        return True
+
     if user in medals.values():
         await message.channel.send(
             f"@{user} you already claimed a medal 😅"
         )
         return True
 
-    # Assign medal
     medals[word] = user
-
     await message.channel.send(
         f"{MEDAL_EMOTES[word]} @{user} {MEDAL_TEXT[word]}"
     )
-
     return True

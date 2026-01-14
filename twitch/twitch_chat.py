@@ -72,7 +72,10 @@ class SharanTwitchBot(commands.Bot):
 
 
     async def event_message(self, message):
-# INTERNAL CONTROL MESSAGE
+        raw_content = message.content.strip()
+        content = raw_content.lower()
+
+        # INTERNAL CONTROL MESSAGE (from bot itself)
         if message.author.name == self.nick:
             if raw_content == "_STREAM_ON_":
                 reset_medals()
@@ -80,11 +83,9 @@ class SharanTwitchBot(commands.Bot):
             if raw_content == "_STREAM_OFF_":
                 end_stream()
                 return
+
         if message.echo:
             return
-
-        raw_content = message.content.strip()
-        content = raw_content.lower()
 
         print(
             f"[TWITCH MESSAGE] user={message.author.name} content={repr(raw_content)}"
@@ -130,6 +131,7 @@ class SharanTwitchBot(commands.Bot):
             msg = await stream_start_message()
             await message.channel.send(msg)
             return
+
 
     # =========================
     # 🔁 MESSAGE SENDER LOOP

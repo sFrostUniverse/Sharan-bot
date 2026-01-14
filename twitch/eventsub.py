@@ -4,7 +4,6 @@ import hashlib
 from pathlib import Path
 from fastapi import APIRouter, Request, Header, HTTPException
 from dotenv import load_dotenv
-from twitch.medals import reset_medals, end_stream
 
 from twitch.greetings import (
     follow_message,
@@ -74,17 +73,6 @@ async def eventsub_handler(
     # =========================
     # EVENT HANDLING
     # =========================
-
-    from twitch.medals import reset_medals, end_stream, set_stream_active
-
-    if event_type == "stream.online":
-        reset_medals()
-        set_stream_active(True)
-        await send_chat_message(await stream_start_message())
-
-    elif event_type == "stream.offline":
-        set_stream_active(False)
-        end_stream()
 
     if event_type == "stream.online":
         await send_chat_message("_STREAM_ON_")
