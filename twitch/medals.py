@@ -29,29 +29,24 @@ MEDAL_TEXT = {
 # =========================
 
 def reset_medals():
-    """
-    Call this when a NEW stream starts.
-    Resets medals and enables medal system.
-    """
-    global _stream_active
+    """Clear medal winners only"""
     for key in medals:
         medals[key] = None
+    print("🥇 Medals reset")
+
+
+def enable_medals():
+    global _stream_active
     _stream_active = True
-    print("🥇 Medals reset — stream active")
+    print("🟢 Medals ENABLED (stream live)")
 
 
 def end_stream():
-    """
-    Call this when stream goes OFFLINE.
-    Disables medal system AND clears medals.
-    """
     global _stream_active
     _stream_active = False
+    reset_medals()
+    print("🔴 Stream ended — medals disabled")
 
-    for key in medals:
-        medals[key] = None
-
-    print("🔴 Stream ended — medals disabled and reset")
 
 
 
