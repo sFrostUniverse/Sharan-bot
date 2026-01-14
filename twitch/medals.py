@@ -1,7 +1,5 @@
 # twitch/medals.py
 
-_stream_active = False  # chat-process state ONLY
-
 medals = {
     "first": None,
     "second": None,
@@ -21,26 +19,16 @@ MEDAL_TEXT = {
 }
 
 # =========================
-# STREAM LIFECYCLE (CHAT SIDE)
+# 🧹 MANUAL RESET
 # =========================
 
 def reset_medals():
     for key in medals:
         medals[key] = None
-    global _stream_active
-    _stream_active = True
-    print("🟢 Stream LIVE — medals enabled & reset")
-
-
-def end_stream():
-    global _stream_active
-    _stream_active = False
-    for key in medals:
-        medals[key] = None
-    print("🔴 Stream OFFLINE — medals disabled & reset")
+    print("♻️ Medals reset manually")
 
 # =========================
-# HANDLE MEDALS
+# 🏅 HANDLE MEDALS
 # =========================
 
 async def handle_medal(message, content: str) -> bool:
@@ -51,20 +39,16 @@ async def handle_medal(message, content: str) -> bool:
     if word not in medals:
         return False
 
-    if not _stream_active:
-        await message.channel.send(
-            "🔴 Stream is offline. Medals are disabled."
-        )
-        return True
-
     user = message.author.name
 
+    # Medal already claimed
     if medals[word] is not None:
         await message.channel.send(
             f"{MEDAL_EMOTES[word]} {word.upper()} already claimed by @{medals[word]}!"
         )
         return True
 
+    # User already has a medal
     if user in medals.values():
         await message.channel.send(
             f"@{user} you already claimed a medal 😅"

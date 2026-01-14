@@ -94,6 +94,20 @@ class SharanTwitchBot(commands.Bot):
         print(
             f"[TWITCH MESSAGE] user={message.author.name} content={repr(raw_content)}"
         )
+        # =========================
+        # 🔧 ADMIN COMMANDS
+        # =========================
+        if content == "!reset medals":
+            if message.author.is_broadcaster or message.author.is_mod:
+                reset_medals()
+                await message.channel.send(
+                    "♻️ Medals have been reset!"
+                )
+            else:
+                await message.channel.send(
+                    "⛔ Only mods or the broadcaster can reset medals."
+                )
+            return
 
         # =========================
         # 🥇 MEDALS (EVERYONE)
