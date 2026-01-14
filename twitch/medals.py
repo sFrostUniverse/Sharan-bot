@@ -27,6 +27,10 @@ MEDAL_TEXT = {
 # =========================
 # 🔄 STREAM LIFECYCLE
 # =========================
+def set_stream_active(active: bool):
+    global _stream_active
+    _stream_active = active
+    print("STREAM ACTIVE =", active)
 
 def reset_medals():
     """Clear medal winners only"""

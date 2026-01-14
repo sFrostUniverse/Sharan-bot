@@ -4,7 +4,7 @@ import time
 from dotenv import load_dotenv
 from twitchio.ext import commands
 
-from twitch.medals import handle_medal
+from twitch.medals import handle_medal,reset_medals,end_stream
 from twitch.games import handle_kill
 from twitch.greetings import stream_start_message
 
@@ -72,6 +72,14 @@ class SharanTwitchBot(commands.Bot):
 
 
     async def event_message(self, message):
+# INTERNAL CONTROL MESSAGE
+        if message.author.name == self.nick:
+            if raw_content == "_STREAM_ON_":
+                reset_medals()
+                return
+            if raw_content == "_STREAM_OFF_":
+                end_stream()
+                return
         if message.echo:
             return
 

@@ -75,12 +75,23 @@ async def eventsub_handler(
     # EVENT HANDLING
     # =========================
 
+    from twitch.medals import reset_medals, end_stream, set_stream_active
+
     if event_type == "stream.online":
-        reset_medals()  # 🥇 reset + enable medals for new stream
+        reset_medals()
+        set_stream_active(True)
         await send_chat_message(await stream_start_message())
 
     elif event_type == "stream.offline":
-        end_stream()  # 🔴 STREAM ENDED → DISABLE MEDALS
+        set_stream_active(False)
+        end_stream()
+
+    if event_type == "stream.online":
+        await send_chat_message("_STREAM_ON_")
+        await send_chat_message(await stream_start_message())
+
+    elif event_type == "stream.offline":
+        await send_chat_message("_STREAM_OFF_")
 
 
     elif event_type == "channel.follow":
