@@ -43,11 +43,16 @@ def reset_medals():
 def end_stream():
     """
     Call this when stream goes OFFLINE.
-    Disables medal system.
+    Disables medal system AND clears medals.
     """
     global _stream_active
     _stream_active = False
-    print("🔴 Stream ended — medals disabled")
+
+    for key in medals:
+        medals[key] = None
+
+    print("🔴 Stream ended — medals disabled and reset")
+
 
 
 # =========================
@@ -55,23 +60,19 @@ def end_stream():
 # =========================
 
 async def handle_medal(message, content: str) -> bool:
-    """
-    Handles medal commands:
-    !first, !second, !third
-
-    Returns:
-        True  -> message was handled
-        False -> not a medal command
-    """
-
-    # ❌ medals disabled when stream is offline
-    if not _stream_active:
-        return False
-
-    # Normalize input
+    # Normalize input early
     word = content.lower().strip()
     if word.startswith("!"):
         word = word[1:]
+
+    # 🚫 Stream offline
+    if not _stream_active:
+        if word in medals:
+            await message.channel.send(
+                "🔴 Stream is offline. Medals are disabled."
+            )
+            return True
+        return False
 
     # Not a medal keyword
     if word not in medals:
