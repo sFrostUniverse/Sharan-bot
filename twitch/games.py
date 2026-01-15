@@ -8,13 +8,11 @@ import random
 # =========================
 
 KILL_WEAPONS = [
-    "SharanGun",     # your emote name
-    "SharanShoot",
+    "itsfro31Bang",
 ]
 
 KILL_RESULTS = [
-    "SharanDead",
-    "SharanRip",
+    "itsfro31Fear",
 ]
 
 KILL_COOLDOWN = 20  # seconds
