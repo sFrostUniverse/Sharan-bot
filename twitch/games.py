@@ -63,7 +63,7 @@ async def handle_kill(message, content: str) -> bool:
     result = random.choice(KILL_RESULTS)
 
     await message.channel.send(
-        f"@{attacker} {weapon} 👉 @{target} {result}"
+        f"@{attacker} {weapon} {result} @{target}"
     )
 
     return True
