@@ -19,12 +19,11 @@ KILL_COOLDOWN = 20  # seconds
 kill_cooldowns = {}
 
 # =========================
-# 🍑 SPANK GAME CONFIG
+# 🔨 BONK GAME CONFIG
 # =========================
 
-SPANK_EMOTES = [
-    "itsfro31Spank1",
-    "itsfro31Spank2",
+BONK_EMOTES = [
+    "itsfro31Bonk1",
 ]
 
 # =========================
@@ -88,29 +87,29 @@ async def handle_kill(message, content: str, bot_name: str) -> bool:
 
 
 # =========================
-# 🍑 HANDLE !spank
+# 🔨 HANDLE !bonk
 # =========================
 
-async def handle_spank(message, content: str, bot_name: str) -> bool:
+async def handle_bonk(message, content: str, bot_name: str) -> bool:
     content = content.strip()
 
-    if not content.lower().startswith("!spank"):
+    if not content.lower().startswith("!bonk"):
         return False
 
     parts = content.split()
     if len(parts) < 2:
         await message.channel.send(
-            f"@{message.author.name} usage: !spank @username"
+            f"@{message.author.name} usage: !bonk @username"
         )
         return True
 
     attacker = message.author.name
     target = parts[1].lstrip("@")
 
-    # ❌ no self spank
+    # ❌ no self bonk
     if target.lower() == attacker.lower():
         await message.channel.send(
-            f"@{attacker} spanking yourself? That’s wild 😳"
+            f"@{attacker} bonking yourself? BONKED 😳"
         )
         return True
 
@@ -119,13 +118,13 @@ async def handle_spank(message, content: str, bot_name: str) -> bool:
     # 🛡️ PROTECTED TARGETS (BOT OR BROADCASTER)
     if target.lower() in {bot_name.lower(), broadcaster_name}:
         await message.channel.send(
-            f"⛔ @{attacker} tried to spank @{target} and got denied 😈"
+            f"⛔ @{attacker} tried to bonk @{target} and got denied 😈"
         )
         return True
 
-    emote = random.choice(SPANK_EMOTES)
+    emote = random.choice(BONK_EMOTES)
 
     await message.channel.send(
-        f"{emote} 😈 @{attacker} spanked @{target}!"
+        f"{emote} 🔨 @{attacker} bonked @{target}!"
     )
     return True

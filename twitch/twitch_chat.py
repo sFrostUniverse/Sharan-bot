@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from twitchio.ext import commands
 
 from twitch.medals import handle_medal, reset_medals
-from twitch.games import handle_kill, handle_spank
+from twitch.games import handle_kill, handle_bonk
 from twitch.greetings import stream_start_message
 from twitch.ads import AdsManager
 
@@ -162,7 +162,7 @@ class SharanTwitchBot(commands.Bot):
         if await handle_kill(message, raw_content, self.nick):
             return
 
-        if await handle_spank(message, raw_content, self.nick):
+        if await handle_bonk(message, raw_content, self.nick):
             return
 
 
