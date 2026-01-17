@@ -14,26 +14,30 @@ KILL_WEAPONS = [
 KILL_RESULTS = [
     "itsfro31Fear",
 ]
-SPANK_EMOTES = [
-    "itsfro31Spank1", 
-]
 
 KILL_COOLDOWN = 20  # seconds
 kill_cooldowns = {}
 
+# =========================
+# 🍑 SPANK GAME CONFIG
+# =========================
+
+SPANK_EMOTES = [
+    "itsfro31Spank1",
+    "itsfro31Spank2",
+]
 
 # =========================
 # ⚔️ HANDLE !kill
 # =========================
 
-async def handle_kill(message, content: str) -> bool:
+async def handle_kill(message, content: str, bot_name: str) -> bool:
     content = content.strip()
 
     if not content.lower().startswith("!kill"):
         return False
 
     parts = content.split()
-
     if len(parts) < 2:
         await message.channel.send(
             f"@{message.author.name} usage: !kill @username"
@@ -50,17 +54,13 @@ async def handle_kill(message, content: str) -> bool:
         )
         return True
 
-    # 🛡️ PROTECTED TARGETS (bot + broadcaster)
-    bot_name = message.channel._client.nick.lower()
-    broadcaster_name = message.channel.name.lower()
-
-    if target.lower() in {bot_name, broadcaster_name}:
-        # backfire
+    # 🛡️ protected targets (bot + broadcaster)
+    if target.lower() == bot_name.lower() or message.author.is_broadcaster:
         weapon = random.choice(KILL_WEAPONS)
         result = random.choice(KILL_RESULTS)
 
         await message.channel.send(
-            f"💥 Backfire! @{target} {weapon} {result} @{attacker} 😈"
+            f"💥 Backfire! @{bot_name} {weapon} {result} @{attacker} 😈"
         )
         return True
 
@@ -82,21 +82,20 @@ async def handle_kill(message, content: str) -> bool:
     await message.channel.send(
         f"@{attacker} {weapon} {result} @{target}"
     )
-
     return True
+
 
 # =========================
 # 🍑 HANDLE !spank
 # =========================
 
-async def handle_spank(message, content: str) -> bool:
+async def handle_spank(message, content: str, bot_name: str) -> bool:
     content = content.strip()
 
     if not content.lower().startswith("!spank"):
         return False
 
     parts = content.split()
-
     if len(parts) < 2:
         await message.channel.send(
             f"@{message.author.name} usage: !spank @username"
@@ -113,24 +112,10 @@ async def handle_spank(message, content: str) -> bool:
         )
         return True
 
-    # 🛡️ PROTECTED TARGETS
-    bot_name = message._client.user.name.lower()
-
-    if target.lower() == bot_name:
+    # 🛡️ protected targets (bot + broadcaster)
+    if target.lower() == bot_name.lower() or message.author.is_broadcaster:
         await message.channel.send(
-            f"⛔ @{attacker} tried to spank me? Naughty 😏"
-        )
-        return True
-
-    if message.author.is_broadcaster and target.lower() == attacker.lower():
-        await message.channel.send(
-            f"😳 Even I won’t allow that!"
-        )
-        return True
-
-    if target.lower() == message.channel.name.lower():
-        await message.channel.send(
-            f"⛔ You can’t spank the broadcaster 😈"
+            f"⛔ @{attacker} tried to spank @{target} and got denied 😈"
         )
         return True
 
@@ -139,7 +124,4 @@ async def handle_spank(message, content: str) -> bool:
     await message.channel.send(
         f"{emote} 😈 @{attacker} spanked @{target}!"
     )
-
     return True
-
-

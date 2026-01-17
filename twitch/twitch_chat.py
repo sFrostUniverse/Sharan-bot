@@ -155,11 +155,16 @@ class SharanTwitchBot(commands.Bot):
         # =========================
         # 🎮 CHAT GAMES (EVERYONE)
         # =========================
-        if await handle_kill(message, raw_content):
-            return
         
-        if await handle_spank(message, raw_content):
+        # =========================
+        # 🎮 CHAT GAMES (EVERYONE)
+        # =========================
+        if await handle_kill(message, raw_content, self.nick):
             return
+
+        if await handle_spank(message, raw_content, self.nick):
+            return
+
 
         # =========================
         # 🚫 PROMO FILTER (VIEWERS ONLY)
