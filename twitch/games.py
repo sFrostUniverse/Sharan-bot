@@ -23,7 +23,7 @@ kill_cooldowns = {}
 # =========================
 
 BONK_EMOTES = [
-    "itsfro31Bonk1",
+    "itsfro31Bonk",
 ]
 
 # =========================
