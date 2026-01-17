@@ -54,13 +54,15 @@ async def handle_kill(message, content: str, bot_name: str) -> bool:
         )
         return True
 
-    # 🛡️ protected targets (bot + broadcaster)
-    if target.lower() == bot_name.lower() or message.author.is_broadcaster:
+    broadcaster_name = message.channel.name.lower()
+
+    # 🛡️ PROTECTED TARGETS (BOT OR BROADCASTER)
+    if target.lower() in {bot_name.lower(), broadcaster_name}:
         weapon = random.choice(KILL_WEAPONS)
         result = random.choice(KILL_RESULTS)
 
         await message.channel.send(
-            f"💥 Backfire! @{bot_name} {weapon} {result} @{attacker} 😈"
+            f"💥 Backfire! @{target} {weapon} {result} @{attacker} 😈"
         )
         return True
 
@@ -112,8 +114,10 @@ async def handle_spank(message, content: str, bot_name: str) -> bool:
         )
         return True
 
-    # 🛡️ protected targets (bot + broadcaster)
-    if target.lower() == bot_name.lower() or message.author.is_broadcaster:
+    broadcaster_name = message.channel.name.lower()
+
+    # 🛡️ PROTECTED TARGETS (BOT OR BROADCASTER)
+    if target.lower() in {bot_name.lower(), broadcaster_name}:
         await message.channel.send(
             f"⛔ @{attacker} tried to spank @{target} and got denied 😈"
         )
