@@ -113,13 +113,24 @@ async def handle_spank(message, content: str) -> bool:
         )
         return True
 
-    # 🛡️ PROTECTED TARGETS (bot + broadcaster)
-    bot_name = message.channel._client.nick.lower()
-    broadcaster_name = message.channel.name.lower()
+    # 🛡️ PROTECTED TARGETS
+    bot_name = message._client.user.name.lower()
 
-    if target.lower() in {bot_name, broadcaster_name}:
+    if target.lower() == bot_name:
         await message.channel.send(
-            f"⛔ @{attacker} tried to spank @{target} and got denied 😈"
+            f"⛔ @{attacker} tried to spank me? Naughty 😏"
+        )
+        return True
+
+    if message.author.is_broadcaster and target.lower() == attacker.lower():
+        await message.channel.send(
+            f"😳 Even I won’t allow that!"
+        )
+        return True
+
+    if target.lower() == message.channel.name.lower():
+        await message.channel.send(
+            f"⛔ You can’t spank the broadcaster 😈"
         )
         return True
 
