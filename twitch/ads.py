@@ -14,9 +14,9 @@ FOLLOW_MESSAGES = [
 
 COMMAND_MESSAGES = [
     "🎮 Wanna cause chaos? Try !kill @username 😈",
-    "🍑 Feeling naughty? Use !spank @username 😏",
-    "💥 Chat games are ON~ try !kill or !spank 💜",
-    "👀 Bored? Wake chat up with !kill or !spank 😘",
+    "🍑 Feeling naughty? Use !bonk @username 😏",
+    "💥 Chat games are ON~ try !kill or !bonk 💜",
+    "👀 Bored? Wake chat up with !kill or !bonk 😘",
 ]
 
 
