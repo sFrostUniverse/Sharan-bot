@@ -5,8 +5,10 @@ from dotenv import load_dotenv
 from twitchio.ext import commands
 
 from twitch.medals import handle_medal, reset_medals
-from twitch.games import handle_kill
+from twitch.games import handle_kill, handle_spank
 from twitch.greetings import stream_start_message
+from twitch.ads import AdsManager
+
 
 
 
@@ -64,7 +66,8 @@ class SharanTwitchBot(commands.Bot):
         twitch_bot_instance = self
 
         self.loop.create_task(self._message_sender())
-
+        self.ads = AdsManager(self)
+        self.ads.start()
         print("🟣 Twitch chat connected")
         print(f"Logged in as: {self.nick}")
 
@@ -107,6 +110,41 @@ class SharanTwitchBot(commands.Bot):
                     "⛔ Only mods or the broadcaster can reset medals."
                 )
             return
+        
+        # =========================
+        # 📢 AUTO ADS CONTROL
+        # =========================
+        if content == "!ads on":
+            if message.author.is_broadcaster or message.author.is_mod:
+                self.ads.enable()
+                await message.channel.send(
+                    "💜 Auto messages ON~ I’ll remind them to follow 😘"
+                )
+            else:
+                await message.channel.send(
+                    "⛔ Only mods or the broadcaster can control ads."
+                )
+            return
+
+        if content == "!ads off":
+            if message.author.is_broadcaster or message.author.is_mod:
+                self.ads.disable()
+                await message.channel.send(
+                    "🖤 Auto messages OFF~ no more reminders for now 😌"
+                )
+            else:
+                await message.channel.send(
+                    "⛔ Only mods or the broadcaster can control ads."
+                )
+            return
+
+        if content == "!ads status":
+            state = "ON 💜" if self.ads.status() else "OFF 🖤"
+            await message.channel.send(
+                f"📢 Auto messages are currently {state}"
+            )
+            return
+
 
         # =========================
         # 🥇 MEDALS (EVERYONE)
@@ -118,6 +156,9 @@ class SharanTwitchBot(commands.Bot):
         # 🎮 CHAT GAMES (EVERYONE)
         # =========================
         if await handle_kill(message, raw_content):
+            return
+        
+        if await handle_spank(message, raw_content):
             return
 
         # =========================

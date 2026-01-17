@@ -14,6 +14,9 @@ KILL_WEAPONS = [
 KILL_RESULTS = [
     "itsfro31Fear",
 ]
+SPANK_EMOTES = [
+    "itsfro31Spank1", 
+]
 
 KILL_COOLDOWN = 20  # seconds
 kill_cooldowns = {}
@@ -47,6 +50,20 @@ async def handle_kill(message, content: str) -> bool:
         )
         return True
 
+    # 🛡️ PROTECTED TARGETS (bot + broadcaster)
+    bot_name = message.channel._client.nick.lower()
+    broadcaster_name = message.channel.name.lower()
+
+    if target.lower() in {bot_name, broadcaster_name}:
+        # backfire
+        weapon = random.choice(KILL_WEAPONS)
+        result = random.choice(KILL_RESULTS)
+
+        await message.channel.send(
+            f"💥 Backfire! @{target} {weapon} {result} @{attacker} 😈"
+        )
+        return True
+
     # ⏱️ cooldown
     now = time.time()
     last = kill_cooldowns.get(attacker, 0)
@@ -67,3 +84,51 @@ async def handle_kill(message, content: str) -> bool:
     )
 
     return True
+
+# =========================
+# 🍑 HANDLE !spank
+# =========================
+
+async def handle_spank(message, content: str) -> bool:
+    content = content.strip()
+
+    if not content.lower().startswith("!spank"):
+        return False
+
+    parts = content.split()
+
+    if len(parts) < 2:
+        await message.channel.send(
+            f"@{message.author.name} usage: !spank @username"
+        )
+        return True
+
+    attacker = message.author.name
+    target = parts[1].lstrip("@")
+
+    # ❌ no self spank
+    if target.lower() == attacker.lower():
+        await message.channel.send(
+            f"@{attacker} spanking yourself? That’s wild 😳"
+        )
+        return True
+
+    # 🛡️ PROTECTED TARGETS (bot + broadcaster)
+    bot_name = message.channel._client.nick.lower()
+    broadcaster_name = message.channel.name.lower()
+
+    if target.lower() in {bot_name, broadcaster_name}:
+        await message.channel.send(
+            f"⛔ @{attacker} tried to spank @{target} and got denied 😈"
+        )
+        return True
+
+    emote = random.choice(SPANK_EMOTES)
+
+    await message.channel.send(
+        f"{emote} 😈 @{attacker} spanked @{target}!"
+    )
+
+    return True
+
+
