@@ -4,6 +4,7 @@ import time
 from dotenv import load_dotenv
 from twitchio.ext import commands
 
+from twitch.jokes import JokeManager
 from twitch.medals import handle_medal, reset_medals
 from twitch.games import handle_kill, handle_bonk
 from twitch.greetings import stream_start_message
@@ -68,6 +69,9 @@ class SharanTwitchBot(commands.Bot):
         self.loop.create_task(self._message_sender())
         self.ads = AdsManager(self)
         self.ads.start()
+        self.jokes = JokeManager(self)
+        self.jokes.start()
+
         print("🟣 Twitch chat connected")
         print(f"Logged in as: {self.nick}")
 
@@ -144,6 +148,42 @@ class SharanTwitchBot(commands.Bot):
                 f"📢 Auto messages are currently {state}"
             )
             return
+        
+
+        # =========================
+        # 😂 JOKES CONTROL
+        # =========================
+        if content == "!jokes on":
+            if message.author.is_mod or message.author.is_broadcaster:
+                self.jokes.enable()
+                await message.channel.send(
+                    "😂 Jokes ON~ let’s keep chat spicy 😏"
+                )
+            else:
+                await message.channel.send(
+                    "⛔ Only mods or the broadcaster can control jokes."
+                )
+            return
+
+        if content == "!jokes off":
+            if message.author.is_mod or message.author.is_broadcaster:
+                self.jokes.disable()
+                await message.channel.send(
+                    "😌 Jokes OFF~ serious mode (for now)."
+                )
+            else:
+                await message.channel.send(
+                    "⛔ Only mods or the broadcaster can control jokes."
+                )
+            return
+
+        if content == "!jokes status":
+            state = "ON 😂" if self.jokes.status() else "OFF 😴"
+            await message.channel.send(
+                f"😂 Random jokes are currently {state}"
+            )
+            return
+
 
 
         # =========================

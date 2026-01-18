@@ -2,7 +2,7 @@ import os
 import asyncio
 import random
 
-AUTO_MESSAGE_INTERVAL = 5 * 60  # 5 minutes
+AUTO_MESSAGE_INTERVAL = 2 * 60  # 2 minutes
 
 FOLLOW_MESSAGES = [
     "💜 Hey cuties~ if you’re enjoying the vibes, tap that FOLLOW button for me 😘",
@@ -14,10 +14,12 @@ FOLLOW_MESSAGES = [
 
 COMMAND_MESSAGES = [
     "🎮 Wanna cause chaos? Try !kill @username 😈",
-    "🍑 Feeling naughty? Use !bonk @username 😏",
+    "🔨 Someone acting wild? BONK them with !bonk @username 😏",
     "💥 Chat games are ON~ try !kill or !bonk 💜",
     "👀 Bored? Wake chat up with !kill or !bonk 😘",
+    "😈 Feeling mischievous? !bonk @username never fails~",
 ]
+
 
 
 
