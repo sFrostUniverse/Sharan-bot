@@ -100,6 +100,22 @@ class SharanTwitchBot(commands.Bot):
         print(
             f"[TWITCH MESSAGE] user={message.author.name} content={repr(raw_content)}"
         )
+
+        # =========================
+        # 🎯 JOKE ANSWER DETECTION
+        # =========================
+        if self.jokes.has_active_joke():
+            bot_name = f"@{self.nick.lower()}"
+            if bot_name in content:
+                await message.channel.send(
+                    f"😈 Nice try @{message.author.name}~ here’s the real answer:"
+                )
+                await message.channel.send(
+                    f"👉 {self.jokes.current_punchline}"
+                )
+                self.jokes.notify_answer()
+                return
+
         # =========================
         # 🔧 ADMIN COMMANDS
         # =========================
@@ -151,39 +167,11 @@ class SharanTwitchBot(commands.Bot):
         
 
         # =========================
-        # 😂 JOKES CONTROL
+        # 😂 JOKE COMMAND
         # =========================
-        if content == "!jokes on":
-            if message.author.is_mod or message.author.is_broadcaster:
-                self.jokes.enable()
-                await message.channel.send(
-                    "😂 Jokes ON~ let’s keep chat spicy 😏"
-                )
-            else:
-                await message.channel.send(
-                    "⛔ Only mods or the broadcaster can control jokes."
-                )
+        if content == "!joke":
+            await self.jokes.start_joke(message.channel)
             return
-
-        if content == "!jokes off":
-            if message.author.is_mod or message.author.is_broadcaster:
-                self.jokes.disable()
-                await message.channel.send(
-                    "😌 Jokes OFF~ serious mode (for now)."
-                )
-            else:
-                await message.channel.send(
-                    "⛔ Only mods or the broadcaster can control jokes."
-                )
-            return
-
-        if content == "!jokes status":
-            state = "ON 😂" if self.jokes.status() else "OFF 😴"
-            await message.channel.send(
-                f"😂 Random jokes are currently {state}"
-            )
-            return
-
 
 
         # =========================
