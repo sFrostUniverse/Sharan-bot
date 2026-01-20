@@ -2,7 +2,7 @@ import os
 import asyncio
 import random
 
-AUTO_MESSAGE_INTERVAL = 15 * 60  # 15 minutes
+AUTO_MESSAGE_INTERVAL = 10 * 60  # 15 minutes
 
 FOLLOW_MESSAGES = [
     "💜 Hey cuties~ if you’re enjoying the vibes, tap that FOLLOW button for me 😘",
