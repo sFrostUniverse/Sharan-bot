@@ -3,6 +3,7 @@ import hmac
 import hashlib
 import asyncio
 from pathlib import Path
+from twitch.medals import reset_medals
 
 from fastapi import APIRouter, Request, Header, HTTPException, Response
 from dotenv import load_dotenv
@@ -86,6 +87,7 @@ async def eventsub_handler(
     # ─────────────────────────────
 
     if event_type == "stream.online":
+        reset_medals()
         asyncio.create_task(send_chat_message(await stream_start_message()))
 
     elif event_type == "stream.offline":
@@ -107,6 +109,14 @@ async def eventsub_handler(
             msg = sub_message(username, tier)
 
         asyncio.create_task(send_chat_message(msg))
+    
+    elif event_type == "channel.subscription.gift":
+        gifter = event.get("user_name", "Someone")
+        total = event.get("total", 1)
+        asyncio.create_task(
+            send_chat_message(f"🎁 {gifter} just gifted {total} subs! 💜")
+        )
+
 
     elif event_type == "channel.cheer":
         asyncio.create_task(
