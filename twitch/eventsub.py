@@ -1,8 +1,10 @@
 import os
 import hmac
 import hashlib
+import asyncio
 from pathlib import Path
-from fastapi import APIRouter, Request, Header, HTTPException
+
+from fastapi import APIRouter, Request, Header, HTTPException, Response
 from dotenv import load_dotenv
 
 from twitch.greetings import (
@@ -12,78 +14,87 @@ from twitch.greetings import (
     stream_start_message,
 )
 
-# =========================
-# LOAD ENV (IMPORTANT)
-# =========================
+# ─────────────────────────────
+# ENV
+# ─────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
-router = APIRouter()
-
 EVENTSUB_SECRET = os.getenv("TWITCH_EVENTSUB_SECRET")
 if not EVENTSUB_SECRET:
-    raise RuntimeError("TWITCH_EVENTSUB_SECRET is not set")
+    raise RuntimeError("TWITCH_EVENTSUB_SECRET missing")
 
-# =========================
-# SIGNATURE VERIFICATION
-# =========================
+router = APIRouter()
 
+# ─────────────────────────────
+# SIGNATURE VERIFY
+# ─────────────────────────────
 def verify_signature(message_id: str, timestamp: str, body: bytes, signature: str) -> bool:
+    if not message_id or not timestamp or not signature:
+        return False
+
     message = message_id.encode() + timestamp.encode() + body
     expected = "sha256=" + hmac.new(
         EVENTSUB_SECRET.encode(),
         message,
         hashlib.sha256,
     ).hexdigest()
+
     return hmac.compare_digest(expected, signature)
 
-# =========================
-# EVENTSUB ENDPOINT
-# =========================
-
+# ─────────────────────────────
+# EVENTSUB WEBHOOK
+# ─────────────────────────────
 @router.post("/eventsub")
 async def eventsub_handler(
     request: Request,
-    twitch_eventsub_message_id: str = Header(...),
-    twitch_eventsub_message_timestamp: str = Header(...),
-    twitch_eventsub_message_signature: str = Header(...),
+    twitch_eventsub_message_id: str = Header(None),
+    twitch_eventsub_message_timestamp: str = Header(None),
+    twitch_eventsub_message_signature: str = Header(None),
 ):
     body = await request.body()
+    payload = await request.json()
 
+    print("📩 EVENTSUB HIT")
+
+    # ✅ 1. HANDLE CHALLENGE FIRST (NO SIGNATURE CHECK)
+    if payload.get("challenge"):
+        print("✅ EVENTSUB VERIFIED")
+        return Response(
+            content=payload["challenge"],
+            media_type="text/plain",
+            status_code=200
+        )
+
+    # ✅ 2. VERIFY SIGNATURE FOR REAL EVENTS
     if not verify_signature(
         twitch_eventsub_message_id,
         twitch_eventsub_message_timestamp,
         body,
         twitch_eventsub_message_signature,
     ):
-        raise HTTPException(status_code=403, detail="Invalid signature")
-
-    payload = await request.json()
-
-    # 🔑 Verification handshake
-    if payload.get("challenge"):
-        return payload["challenge"]
+        raise HTTPException(status_code=403, detail="Invalid EventSub signature")
 
     event_type = payload["subscription"]["type"]
     event = payload.get("event", {})
 
-    # 🔁 SAFE late import (queue-based)
+    # 🔁 Import late (avoid circular / startup issues)
     from twitch.twitch_chat import send_chat_message
 
-    # =========================
-    # EVENT HANDLING
-    # =========================
+    # ─────────────────────────────
+    # EVENT HANDLING (NON-BLOCKING)
+    # ─────────────────────────────
 
     if event_type == "stream.online":
-        await send_chat_message("_STREAM_ON_")
-        await send_chat_message(await stream_start_message())
+        asyncio.create_task(send_chat_message(await stream_start_message()))
 
     elif event_type == "stream.offline":
-        await send_chat_message("_STREAM_OFF_")
-
+        asyncio.create_task(send_chat_message("_STREAM_OFF_"))
 
     elif event_type == "channel.follow":
-        await send_chat_message(follow_message(event["user_name"]))
+        asyncio.create_task(
+            send_chat_message(follow_message(event["user_name"]))
+        )
 
     elif event_type == "channel.subscribe":
         username = event["user_name"]
@@ -95,13 +106,14 @@ async def eventsub_handler(
         else:
             msg = sub_message(username, tier)
 
-        await send_chat_message(msg)
+        asyncio.create_task(send_chat_message(msg))
 
     elif event_type == "channel.cheer":
-        await send_chat_message(
-            cheer_message(event["user_name"], event["bits"])
+        asyncio.create_task(
+            send_chat_message(
+                cheer_message(event["user_name"], event["bits"])
+            )
         )
-    print("EVENTSUB PAYLOAD:", payload)
-    return {"status": "ok"}
 
-
+    print("📦 EVENT:", event_type)
+    return Response(status_code=204)

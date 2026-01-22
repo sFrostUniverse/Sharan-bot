@@ -53,6 +53,26 @@ async def get_app_token() -> str:
 # =========================
 # 📡 STREAM INFO
 # =========================
+async def get_user_id(login: str) -> str | None:
+    token = await get_app_token()
+    headers = {
+        "Client-ID": TWITCH_CLIENT_ID,
+        "Authorization": f"Bearer {token}",
+    }
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(
+            "https://api.twitch.tv/helix/users",
+            headers=headers,
+            params={"login": login},
+        ) as resp:
+            data = await resp.json()
+
+    users = data.get("data", [])
+    if not users:
+        return None
+
+    return users[0]["id"]
 
 async def get_stream_info(broadcaster_login: str) -> dict | None:
     """

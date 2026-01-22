@@ -17,7 +17,8 @@ CLIENT_SECRET = os.getenv("TWITCH_CLIENT_SECRET")
 EVENTSUB_SECRET = os.getenv("TWITCH_EVENTSUB_SECRET")
 
 # Your Twitch broadcaster ID
-BROADCASTER_ID = "1408610037"
+BROADCASTER_ID = os.getenv("TWITCH_BROADCASTER_ID")
+
 
 # Your public webhook endpoint
 CALLBACK_URL = "https://sharan-bot-kp71.onrender.com/eventsub"

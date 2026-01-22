@@ -46,7 +46,7 @@ SERVICE_KEYWORDS = [
 class SharanTwitchBot(commands.Bot):
     def __init__(self):
         super().__init__(
-            token=os.getenv("TWITCH_TOKEN"),
+            token=os.getenv("TWITCH_BOT_TOKEN"),
             client_id=os.getenv("TWITCH_CLIENT_ID"),
             client_secret=os.getenv("TWITCH_CLIENT_SECRET"),
             bot_id=os.getenv("TWITCH_BOT_ID"),

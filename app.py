@@ -64,11 +64,13 @@ app.include_router(eventsub_router)
 # =========================
 # ❤️ HEALTH CHECK ROUTES
 # =========================
-
 @app.get("/")
 async def root():
+    print("❤️ Health check ping")
     return {"status": "Sharan is alive"}
 
 @app.head("/")
 async def head_root():
     return Response(status_code=200)
+
+
