@@ -214,7 +214,7 @@ class SharanTwitchBot(commands.Bot):
         # =========================
         if content == "!discord":
             await message.channel.send(
-                "💜 Join our Discord here: https://discord.gg/33Gsen7xhY"
+                "💜 Join our Discord here: https://discord.gg/XSYj3UNmcp"
             )
             return
 
