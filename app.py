@@ -5,17 +5,15 @@ from dotenv import load_dotenv
 
 from twitch.twitch_chat import SharanTwitchBot
 from twitch.eventsub import router as eventsub_router
-from discord_bot import start_discord_async
 
 load_dotenv()
 
-# Keep references so tasks are not garbage-collected
 background_tasks: list[asyncio.Task] = []
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("🚀 Starting Sharan services...")
+    print("🚀 Starting Twitch services (Render)...")
 
     async def run_twitch():
         try:
@@ -27,24 +25,13 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             print("❌ Twitch bot crashed:", e)
 
-    async def run_discord():
-        try:
-            print("🤖 Starting Discord bot...")
-            await start_discord_async()
-        except asyncio.CancelledError:
-            print("🤖 Discord bot shut down cleanly")
-        except Exception as e:
-            print("❌ Discord bot crashed:", e)
-
-    # Start bots as background tasks
+    # ✅ ONLY Twitch runs on Render
     background_tasks.append(asyncio.create_task(run_twitch()))
-    background_tasks.append(asyncio.create_task(run_discord()))
 
-    yield  # ⬅️ Application is LIVE here
+    yield  # ⬅️ App is LIVE
 
-    print("🛑 Shutting down Sharan services...")
+    print("🛑 Shutting down Twitch services...")
 
-    # Gracefully cancel background tasks
     for task in background_tasks:
         task.cancel()
 
@@ -57,20 +44,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-# 🔗 Mount EventSub routes
+# 🔗 EventSub routes (KEEP)
 app.include_router(eventsub_router)
 
 
 # =========================
-# ❤️ HEALTH CHECK ROUTES
+# ❤️ HEALTH CHECK
 # =========================
 @app.get("/")
 async def root():
-    print("❤️ Health check ping")
-    return {"status": "Sharan is alive"}
+    return {"status": "Twitch service alive"}
 
 @app.head("/")
 async def head_root():
     return Response(status_code=200)
-
-
