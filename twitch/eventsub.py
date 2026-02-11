@@ -2,6 +2,7 @@ import os
 import hmac
 import hashlib
 import asyncio
+import json
 from pathlib import Path
 from twitch.medals import reset_medals
 
@@ -49,23 +50,28 @@ def verify_signature(message_id: str, timestamp: str, body: bytes, signature: st
 @router.post("/eventsub")
 async def eventsub_handler(
     request: Request,
-    twitch_eventsub_message_id: str = Header(None),
-    twitch_eventsub_message_timestamp: str = Header(None),
-    twitch_eventsub_message_signature: str = Header(None),
+    twitch_eventsub_message_id: str = Header(None, alias="Twitch-Eventsub-Message-Id"),
+    twitch_eventsub_message_timestamp: str = Header(None, alias="Twitch-Eventsub-Message-Timestamp"),
+    twitch_eventsub_message_signature: str = Header(None, alias="Twitch-Eventsub-Message-Signature"),
+    twitch_eventsub_message_type: str = Header(None, alias="Twitch-Eventsub-Message-Type"),
 ):
-    body = await request.body()
-    payload = await request.json()
+    raw_body = await request.body()
 
-    print("📩 EVENTSUB HIT")
+    try:
+        payload = json.loads(raw_body)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
 
-    # ✅ 1. HANDLE CHALLENGE FIRST (NO SIGNATURE CHECK)
-    if payload.get("challenge"):
-        print("✅ EVENTSUB VERIFIED")
+    # 🔑 1. Verification challenge (NO signature check)
+    if twitch_eventsub_message_type == "webhook_callback_verification":
         return Response(
             content=payload["challenge"],
             media_type="text/plain",
             status_code=200
         )
+
+    # (signature check + notification handling continue here)
+    return Response(status_code=204)
 
     # ✅ 2. VERIFY SIGNATURE FOR REAL EVENTS
     if not verify_signature(
