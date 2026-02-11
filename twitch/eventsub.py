@@ -62,35 +62,43 @@ async def eventsub_handler(
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON")
 
-    # 🔑 1. Verification challenge (NO signature check)
+    print("📩 EventSub type:", twitch_eventsub_message_type)
+
+    # ─────────────────────────────
+    # 1️⃣ VERIFICATION CHALLENGE
+    # ─────────────────────────────
     if twitch_eventsub_message_type == "webhook_callback_verification":
+        print("✅ EventSub verification received")
         return Response(
             content=payload["challenge"],
             media_type="text/plain",
             status_code=200
         )
 
-    # (signature check + notification handling continue here)
-    return Response(status_code=204)
-
-    # ✅ 2. VERIFY SIGNATURE FOR REAL EVENTS
+    # ─────────────────────────────
+    # 2️⃣ SIGNATURE VERIFICATION
+    # ─────────────────────────────
     if not verify_signature(
         twitch_eventsub_message_id,
         twitch_eventsub_message_timestamp,
-        body,
+        raw_body,
         twitch_eventsub_message_signature,
     ):
+        print("❌ Invalid EventSub signature")
         raise HTTPException(status_code=403, detail="Invalid EventSub signature")
+
+    # ─────────────────────────────
+    # 3️⃣ HANDLE NOTIFICATION
+    # ─────────────────────────────
+    if twitch_eventsub_message_type != "notification":
+        return Response(status_code=204)
 
     event_type = payload["subscription"]["type"]
     event = payload.get("event", {})
 
-    # 🔁 Import late (avoid circular / startup issues)
-    from twitch.twitch_chat import send_chat_message
+    print("📦 EVENT:", event_type)
 
-    # ─────────────────────────────
-    # EVENT HANDLING (NON-BLOCKING)
-    # ─────────────────────────────
+    from twitch.twitch_chat import send_chat_message
 
     if event_type == "stream.online":
         reset_medals()
@@ -115,14 +123,13 @@ async def eventsub_handler(
             msg = sub_message(username, tier)
 
         asyncio.create_task(send_chat_message(msg))
-    
+
     elif event_type == "channel.subscription.gift":
         gifter = event.get("user_name", "Someone")
         total = event.get("total", 1)
         asyncio.create_task(
             send_chat_message(f"🎁 {gifter} just gifted {total} subs! 💜")
         )
-
 
     elif event_type == "channel.cheer":
         asyncio.create_task(
@@ -131,5 +138,4 @@ async def eventsub_handler(
             )
         )
 
-    print("📦 EVENT:", event_type)
     return Response(status_code=204)
