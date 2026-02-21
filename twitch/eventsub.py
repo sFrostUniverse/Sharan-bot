@@ -1,3 +1,4 @@
+print("eventsub.py loaded")
 import os
 import hmac
 import hashlib
