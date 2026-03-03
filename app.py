@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 # ❌ DISABLED FOR PHASE 1
 # from twitch.twitch_chat import SharanTwitchBot
-
+from twitch.oauth import router as oauth_router
 from twitch.eventsub import router as eventsub_router
 from internal import router as internal_router   # 👈 ADD THIS
 
@@ -48,6 +48,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+app.include_router(oauth_router)  # 🔗 OAuth routes (KEEP)
 # 🔗 EventSub routes (KEEP)
 app.include_router(eventsub_router)
 
