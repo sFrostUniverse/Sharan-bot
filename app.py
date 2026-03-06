@@ -3,11 +3,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Response
 from dotenv import load_dotenv
 
-# ❌ DISABLED FOR PHASE 1
-# from twitch.twitch_chat import SharanTwitchBot
 from twitch.oauth import router as oauth_router
 from twitch.eventsub import router as eventsub_router
-from internal import router as internal_router   # 👈 ADD THIS
+from internal import router as internal_router
+from render_routes import router as api_router
 
 load_dotenv()
 
@@ -18,21 +17,7 @@ background_tasks: list[asyncio.Task] = []
 async def lifespan(app: FastAPI):
     print("🚀 Starting Render EventSub service...")
 
-    # ❌ DISABLED FOR PHASE 1
-    # async def run_twitch():
-    #     try:
-    #         print("🎮 Starting Twitch bot...")
-    #         twitch = SharanTwitchBot()
-    #         await twitch.start_bot()
-    #     except asyncio.CancelledError:
-    #         print("🎮 Twitch bot shut down cleanly")
-    #     except Exception as e:
-    #         print("❌ Twitch bot crashed:", e)
-
-    # ❌ DO NOT START TWITCH BOT ON RENDER
-    # background_tasks.append(asyncio.create_task(run_twitch()))
-
-    yield  # ⬅️ App is LIVE
+    yield
 
     print("🛑 Shutting down Render service...")
 
@@ -48,19 +33,22 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-app.include_router(oauth_router)  # 🔗 OAuth routes (KEEP)
-# 🔗 EventSub routes (KEEP)
-app.include_router(eventsub_router)
 
-# 🔗 Internal polling routes (NEW)
+# 🔗 ROUTERS
+app.include_router(oauth_router)
+app.include_router(eventsub_router)
 app.include_router(internal_router)
+app.include_router(api_router)   # Dashboard API routes
+
 
 # =========================
 # ❤️ HEALTH CHECK
 # =========================
+
 @app.get("/")
 async def root():
     return {"status": "EventSub service alive"}
+
 
 @app.head("/")
 async def head_root():
