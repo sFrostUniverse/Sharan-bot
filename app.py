@@ -7,6 +7,7 @@ from twitch.oauth import router as oauth_router
 from twitch.eventsub import router as eventsub_router
 from internal import router as internal_router
 from render_routes import router as api_router
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
@@ -33,6 +34,13 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # later you can restrict to your domain
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # 🔗 ROUTERS
 app.include_router(oauth_router)
