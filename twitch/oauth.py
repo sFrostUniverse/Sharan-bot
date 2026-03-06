@@ -3,7 +3,6 @@ import aiohttp
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import RedirectResponse
 from dotenv import load_dotenv
-
 from event_queue import EVENT_QUEUE
 
 load_dotenv()
@@ -31,6 +30,7 @@ if not CLIENT_ID or not CLIENT_SECRET:
 # =========================
 @router.get("/auth/twitch/login")
 async def twitch_login():
+
     url = (
         "https://id.twitch.tv/oauth2/authorize"
         f"?client_id={CLIENT_ID}"
@@ -38,6 +38,7 @@ async def twitch_login():
         "&response_type=code"
         f"&scope={SCOPES}"
     )
+
     return RedirectResponse(url)
 
 
@@ -109,7 +110,34 @@ async def twitch_callback(code: str):
             "Content-Type": "application/json",
         }
 
-        # 4️⃣ Create EventSub subscriptions
+        # =========================
+        # 🧹 CLEAN OLD EVENTSUBS
+        # =========================
+        sub_resp = await session.get(
+            "https://api.twitch.tv/helix/eventsub/subscriptions",
+            headers=headers
+        )
+
+        sub_data = await sub_resp.json()
+
+        for sub in sub_data.get("data", []):
+            condition = sub.get("condition", {})
+
+            if condition.get("broadcaster_user_id") == broadcaster_id:
+                sub_id = sub["id"]
+
+                await session.delete(
+                    "https://api.twitch.tv/helix/eventsub/subscriptions",
+                    headers=headers,
+                    params={"id": sub_id},
+                )
+
+                print(f"🧹 Removed old EventSub: {sub_id}")
+
+
+        # =========================
+        # 🎯 CREATE EVENTSUB
+        # =========================
         event_types = [
             "stream.online",
             "stream.offline",
@@ -138,7 +166,7 @@ async def twitch_callback(code: str):
 
         print(f"🎯 EventSub created for {login}")
 
-        # 5️⃣ Push to Sparked via queue
+        # 5️⃣ Push onboarding event
         EVENT_QUEUE.append({
             "type": "channel.added",
             "event": {
@@ -149,7 +177,8 @@ async def twitch_callback(code: str):
 
         print(f"🚀 Queued onboarding for {login}")
 
-        return {
-            "success": True,
-            "onboarded_channel": login
-        }
+        # 6️⃣ Redirect to setup UI
+        return RedirectResponse(
+            url=f"https://itsfrosea.github.io/dashboard/setup.html?channel={login}",
+            status_code=302
+        )
