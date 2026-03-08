@@ -34,6 +34,17 @@ async def set_currency(data: dict):
 
     return {"success": True}
 
+@router.post("/economy/save")
+async def save_economy(data: dict):
+
+    EVENT_QUEUE.append({
+        "type": "economy.save",
+        "event": data
+    })
+
+    print("💰 Economy settings queued:", data)
+
+    return {"success": True}
 
 # =========================
 # ⚙️ POINT SETTINGS
