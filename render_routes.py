@@ -3,6 +3,7 @@ from event_queue import EVENT_QUEUE
 
 router = APIRouter()
 
+LEADERBOARD_CACHE = {}
 # =========================
 # 💬 ADD CUSTOM COMMAND
 # =========================
@@ -24,16 +25,29 @@ async def add_command(data: dict):
 @router.get("/leaderboard")
 async def leaderboard(channel: str):
 
+    # ask SparkedHost for updated leaderboard
     EVENT_QUEUE.append({
         "type": "leaderboard.request",
-        "event": {
-            "channel": channel
-        }
+        "event": {"channel": channel}
     })
 
     print("📊 Leaderboard request queued:", channel)
 
-    return {"status": "queued"}
+    # return cached leaderboard if available
+    return LEADERBOARD_CACHE.get(channel, [])
+
+
+
+@router.post("/internal/leaderboard")
+async def leaderboard_response(data: dict):
+
+    channel = data["channel"]
+
+    LEADERBOARD_CACHE[channel] = data["data"]
+
+    print("📊 Leaderboard updated for", channel)
+
+    return {"ok": True}
 
 # =========================
 # 💰 SET CURRENCY
