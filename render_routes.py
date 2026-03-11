@@ -1,6 +1,8 @@
 from fastapi import APIRouter
 from event_queue import EVENT_QUEUE
 
+import asyncio
+
 router = APIRouter()
 
 LEADERBOARD_CACHE = {}
@@ -25,15 +27,18 @@ async def add_command(data: dict):
 @router.get("/leaderboard")
 async def leaderboard(channel: str):
 
-    # clear old cache
-    LEADERBOARD_CACHE[channel] = []
-
     EVENT_QUEUE.append({
         "type": "leaderboard.request",
         "event": {"channel": channel}
     })
 
     print("📊 Leaderboard request queued:", channel)
+
+    # wait up to 2 seconds for SparkedHost to respond
+    for _ in range(20):
+        if channel in LEADERBOARD_CACHE:
+            return LEADERBOARD_CACHE[channel]
+        await asyncio.sleep(0.1)
 
     return []
 
