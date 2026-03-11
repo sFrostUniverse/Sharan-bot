@@ -25,7 +25,9 @@ async def add_command(data: dict):
 @router.get("/leaderboard")
 async def leaderboard(channel: str):
 
-    # ask SparkedHost for updated leaderboard
+    # clear old cache
+    LEADERBOARD_CACHE[channel] = []
+
     EVENT_QUEUE.append({
         "type": "leaderboard.request",
         "event": {"channel": channel}
@@ -33,8 +35,7 @@ async def leaderboard(channel: str):
 
     print("📊 Leaderboard request queued:", channel)
 
-    # return cached leaderboard if available
-    return LEADERBOARD_CACHE.get(channel, [])
+    return []
 
 
 
