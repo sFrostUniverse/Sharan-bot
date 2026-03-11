@@ -6,6 +6,7 @@ import asyncio
 router = APIRouter()
 
 LEADERBOARD_CACHE = {}
+COMMANDS_CACHE = {}
 # =========================
 # 💬 ADD CUSTOM COMMAND
 # =========================
@@ -20,6 +21,27 @@ async def add_command(data: dict):
     print("📨 Command event queued:", data)
 
     return {"success": True}
+
+# =========================
+# 📜 GET COMMAND LIST
+# =========================
+@router.get("/commands")
+async def get_commands(channel: str):
+
+    EVENT_QUEUE.append({
+        "type": "commands.list",
+        "event": {"channel": channel}
+    })
+
+    print("📜 Command list requested:", channel)
+
+    for _ in range(20):
+        if channel in COMMANDS_CACHE:
+            return COMMANDS_CACHE[channel]
+        await asyncio.sleep(0.1)
+
+    return []
+
 
 # =========================
 # 🏆 LEADERBOARD REQUEST
@@ -54,6 +76,33 @@ async def leaderboard_response(data: dict):
     print("📊 Leaderboard updated for", channel)
 
     return {"ok": True}
+
+@router.post("/internal/commands")
+async def commands_response(data: dict):
+
+    channel = data["channel"]
+
+    COMMANDS_CACHE[channel] = data["data"]
+
+    print("📜 Commands updated for", channel)
+
+    return {"ok": True}
+
+# =========================
+# 🗑 DELETE COMMAND
+# =========================
+@router.post("/command/delete")
+async def delete_command(data: dict):
+
+    EVENT_QUEUE.append({
+        "type": "command.delete",
+        "event": data
+    })
+
+    print("🗑 Command delete queued:", data)
+
+    return {"success": True}
+
 
 # =========================
 # 💰 SET CURRENCY
