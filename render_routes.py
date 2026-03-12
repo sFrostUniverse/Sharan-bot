@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from event_queue import EVENT_QUEUE
 
 import asyncio
+import json
 
 router = APIRouter()
 
@@ -82,12 +83,16 @@ async def commands_response(data: dict):
 
     channel = data["channel"]
 
-    COMMANDS_CACHE[channel] = data["data"]
+    commands = data["data"]
+
+    if isinstance(commands, str):
+        commands = json.loads(commands)
+
+    COMMANDS_CACHE[channel] = commands
 
     print("📜 Commands updated for", channel)
 
     return {"ok": True}
-
 # =========================
 # 🗑 DELETE COMMAND
 # =========================
