@@ -8,11 +8,16 @@ router = APIRouter()
 
 LEADERBOARD_CACHE = {}
 COMMANDS_CACHE = {}
+
 # =========================
 # 💬 ADD CUSTOM COMMAND
 # =========================
 @router.post("/command/add")
 async def add_command(data: dict):
+
+    # normalize command
+    data["command"] = data["command"].strip().lower()
+    data["response"] = data["response"].strip()
 
     EVENT_QUEUE.append({
         "type": "command.add",
@@ -23,11 +28,15 @@ async def add_command(data: dict):
 
     return {"success": True}
 
+
 # =========================
 # 📜 GET COMMAND LIST
 # =========================
 @router.get("/commands")
 async def get_commands(channel: str):
+
+    # clear old cache
+    COMMANDS_CACHE.pop(channel, None)
 
     EVENT_QUEUE.append({
         "type": "commands.list",
@@ -36,7 +45,8 @@ async def get_commands(channel: str):
 
     print("📜 Command list requested:", channel)
 
-    for _ in range(20):
+    # wait up to ~6 seconds
+    for _ in range(60):
         if channel in COMMANDS_CACHE:
             return COMMANDS_CACHE[channel]
         await asyncio.sleep(0.1)
@@ -50,6 +60,9 @@ async def get_commands(channel: str):
 @router.get("/leaderboard")
 async def leaderboard(channel: str):
 
+    # clear old cache
+    LEADERBOARD_CACHE.pop(channel, None)
+
     EVENT_QUEUE.append({
         "type": "leaderboard.request",
         "event": {"channel": channel}
@@ -57,8 +70,8 @@ async def leaderboard(channel: str):
 
     print("📊 Leaderboard request queued:", channel)
 
-    # wait up to 2 seconds for SparkedHost to respond
-    for _ in range(20):
+    # wait up to ~6 seconds for SparkedHost
+    for _ in range(60):
         if channel in LEADERBOARD_CACHE:
             return LEADERBOARD_CACHE[channel]
         await asyncio.sleep(0.1)
@@ -66,7 +79,9 @@ async def leaderboard(channel: str):
     return []
 
 
-
+# =========================
+# 📥 LEADERBOARD RESPONSE
+# =========================
 @router.post("/internal/leaderboard")
 async def leaderboard_response(data: dict):
 
@@ -78,6 +93,10 @@ async def leaderboard_response(data: dict):
 
     return {"ok": True}
 
+
+# =========================
+# 📥 COMMAND RESPONSE
+# =========================
 @router.post("/internal/commands")
 async def commands_response(data: dict):
 
@@ -93,6 +112,8 @@ async def commands_response(data: dict):
     print("📜 Commands updated for", channel)
 
     return {"ok": True}
+
+
 # =========================
 # 🗑 DELETE COMMAND
 # =========================
@@ -124,6 +145,7 @@ async def set_currency(data: dict):
 
     return {"success": True}
 
+
 @router.post("/economy/save")
 async def save_economy(data: dict):
 
@@ -135,6 +157,7 @@ async def save_economy(data: dict):
     print("💰 Economy settings queued:", data)
 
     return {"success": True}
+
 
 # =========================
 # ⚙️ POINT SETTINGS
