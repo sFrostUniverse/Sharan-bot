@@ -4,10 +4,13 @@ from event_queue import EVENT_QUEUE
 import asyncio
 import json
 
+from twitch import db
+
 router = APIRouter()
 
 LEADERBOARD_CACHE = {}
 COMMANDS_CACHE = {}
+SETTINGS_CACHE = {}
 
 # =========================
 # 💬 ADD CUSTOM COMMAND
@@ -158,6 +161,17 @@ async def save_economy(data: dict):
 
     return {"success": True}
 
+@router.post("/medals/set")
+async def set_medals(data: dict):
+
+    EVENT_QUEUE.append({
+        "type": "medals.set",
+        "event": data
+    })
+
+    print("🏅 Medal settings queued:", data)
+
+    return {"success": True}
 
 # =========================
 # ⚙️ POINT SETTINGS
@@ -189,3 +203,22 @@ async def add_timed_message(data: dict):
     print("⏰ Timed message event queued:", data)
 
     return {"success": True}
+
+@router.get("/settings")
+async def get_settings(channel: str):
+
+    SETTINGS_CACHE.pop(channel, None)
+
+    EVENT_QUEUE.append({
+        "type": "settings.request",
+        "event": {"channel": channel}
+    })
+
+    for _ in range(60):
+        if channel in SETTINGS_CACHE:
+            return SETTINGS_CACHE[channel]
+        await asyncio.sleep(0.1)
+
+    return {
+        "medals_enabled": 1
+    }
