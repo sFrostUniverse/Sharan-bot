@@ -188,6 +188,16 @@ async def set_points_settings(data: dict):
 
     return {"success": True}
 
+@router.post("/internal/settings")
+async def settings_response(data: dict):
+
+    channel = data["channel"]
+
+    SETTINGS_CACHE[channel] = data["data"]
+
+    print("⚙️ Settings updated for", channel)
+
+    return {"ok": True}
 
 # =========================
 # ⏰ ADD TIMED MESSAGE
