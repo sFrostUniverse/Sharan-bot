@@ -4,7 +4,7 @@ from event_queue import EVENT_QUEUE
 import asyncio
 import json
 
-from twitch import db
+from data.twitch_db import db
 
 router = APIRouter()
 
