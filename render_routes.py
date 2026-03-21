@@ -11,6 +11,7 @@ router = APIRouter()
 LEADERBOARD_CACHE = {}
 COMMANDS_CACHE = {}
 SETTINGS_CACHE = {}
+TIMED_CACHE = {}
 
 # =========================
 # 💬 ADD CUSTOM COMMAND
@@ -217,19 +218,32 @@ async def add_timed_message(data: dict):
 @router.get("/timed/list")
 async def timed_list(channel: str):
 
+    TIMED_CACHE.pop(channel, None)
+
     EVENT_QUEUE.append({
         "type": "timed.list",
         "event": {"channel": channel}
     })
 
     for _ in range(60):
-        if channel in SETTINGS_CACHE:  # or create TIMED_CACHE
-            return SETTINGS_CACHE[channel]
+        if channel in TIMED_CACHE:  # ✅ CORRECT
+            return TIMED_CACHE[channel]
         await asyncio.sleep(0.1)
 
     return []
 
-    
+@router.post("/internal/timed")
+async def timed_response(data: dict):
+
+    channel = data["channel"]
+
+    TIMED_CACHE[channel] = data["data"]
+
+    print("⏰ Timed updated for", channel)
+
+    return {"ok": True}
+
+
 @router.get("/settings")
 async def get_settings(channel: str):
 
