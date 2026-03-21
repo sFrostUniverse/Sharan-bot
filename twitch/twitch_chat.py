@@ -4,17 +4,18 @@ import time
 from dotenv import load_dotenv
 from twitchio.ext import commands
 
-from twitch.jokes import JokeManager
+from twitch.commands import handle_fun_commands
+from twitch.moderation import handle_first_message_moderation
 from twitch.medals import handle_medal, reset_medals
 from twitch.games import handle_kill, handle_bonk
 from twitch.greetings import stream_start_message
-from twitch.ads import AdsManager
+from twitch.db import Database
 
+db = Database()
 
 
 
 load_dotenv()
-
 # =========================
 # 🌐 GLOBAL BOT STATE
 # =========================
@@ -67,10 +68,7 @@ class SharanTwitchBot(commands.Bot):
         twitch_bot_instance = self
 
         self.loop.create_task(self._message_sender())
-        self.ads = AdsManager(self)
-        self.ads.start()
-        self.jokes = JokeManager(self)
-        self.jokes.start()
+        
 
         print("🟣 Twitch chat connected")
         print(f"Logged in as: {self.nick}")
@@ -102,21 +100,6 @@ class SharanTwitchBot(commands.Bot):
         )
 
         # =========================
-        # 🎯 JOKE ANSWER DETECTION
-        # =========================
-        if self.jokes.has_active_joke():
-            bot_name = f"@{self.nick.lower()}"
-            if bot_name in content:
-                await message.channel.send(
-                    f"😈 Nice try @{message.author.name}~ here’s the real answer:"
-                )
-                await message.channel.send(
-                    f"👉 {self.jokes.current_punchline}"
-                )
-                self.jokes.notify_answer()
-                return
-
-        # =========================
         # 🔧 ADMIN COMMANDS
         # =========================
         if content == "!reset medals":
@@ -131,49 +114,6 @@ class SharanTwitchBot(commands.Bot):
                 )
             return
         
-        # =========================
-        # 📢 AUTO ADS CONTROL
-        # =========================
-        if content == "!ads on":
-            if message.author.is_broadcaster or message.author.is_mod:
-                self.ads.enable()
-                await message.channel.send(
-                    "💜 Auto messages ON~ I’ll remind them to follow 😘"
-                )
-            else:
-                await message.channel.send(
-                    "⛔ Only mods or the broadcaster can control ads."
-                )
-            return
-
-        if content == "!ads off":
-            if message.author.is_broadcaster or message.author.is_mod:
-                self.ads.disable()
-                await message.channel.send(
-                    "🖤 Auto messages OFF~ no more reminders for now 😌"
-                )
-            else:
-                await message.channel.send(
-                    "⛔ Only mods or the broadcaster can control ads."
-                )
-            return
-
-        if content == "!ads status":
-            state = "ON 💜" if self.ads.status() else "OFF 🖤"
-            await message.channel.send(
-                f"📢 Auto messages are currently {state}"
-            )
-            return
-        
-
-        # =========================
-        # 😂 JOKE COMMAND
-        # =========================
-        if content == "!joke":
-            await self.jokes.start_joke(message.channel)
-            return
-
-
         # =========================
         # 🥇 MEDALS (EVERYONE)
         # =========================
@@ -208,19 +148,34 @@ class SharanTwitchBot(commands.Bot):
                     )
                     self.last_service_reply[message.author.name] = now
                 return
+        
+        # =========================
+        # 🚨 FIRST MESSAGE MODERATION (V1)
+        # =========================
+        if not (message.author.is_mod or message.author.is_broadcaster):
+            handled = await handle_first_message_moderation(self, message)
+            if handled:
+                return
 
         # =========================
         # 🎯 BASIC COMMANDS
         # =========================
         if content == "!discord":
             await message.channel.send(
-                "💜 Join our Discord here: https://discord.gg/XSYj3UNmcp"
+                "💜 Join our Discord here: https://discord.gg/MuAQ3JgS7b"
             )
             return
 
         if content == "!live":
             msg = await stream_start_message()
             await message.channel.send(msg)
+            return
+        
+        # =========================
+        # 🎉 FUN COMMANDS
+        # =========================
+        handled = await handle_fun_commands(self, message)
+        if handled:
             return
 
 
