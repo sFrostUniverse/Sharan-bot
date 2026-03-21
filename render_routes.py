@@ -214,6 +214,22 @@ async def add_timed_message(data: dict):
 
     return {"success": True}
 
+@router.get("/timed/list")
+async def timed_list(channel: str):
+
+    EVENT_QUEUE.append({
+        "type": "timed.list",
+        "event": {"channel": channel}
+    })
+
+    for _ in range(60):
+        if channel in SETTINGS_CACHE:  # or create TIMED_CACHE
+            return SETTINGS_CACHE[channel]
+        await asyncio.sleep(0.1)
+
+    return []
+
+    
 @router.get("/settings")
 async def get_settings(channel: str):
 
