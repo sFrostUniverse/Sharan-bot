@@ -447,6 +447,21 @@ async def timed_list(channel: str):
 
     return []
 
+# =========================
+# 🗑 DELETE TIMED MESSAGE
+# =========================
+@router.post("/timed/delete")
+async def delete_timed_message(data: dict):
+
+    EVENT_QUEUE.append({
+        "type": "timed.delete",
+        "event": data
+    })
+
+    print("🗑 Timed delete queued:", data)
+
+    return {"success": True}
+
 @router.post("/internal/timed")
 async def timed_response(data: dict):
 
