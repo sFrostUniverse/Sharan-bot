@@ -1,5 +1,6 @@
 import os
 import aiohttp
+import secrets
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import RedirectResponse
 from dotenv import load_dotenv
@@ -31,12 +32,15 @@ if not CLIENT_ID or not CLIENT_SECRET:
 @router.get("/auth/twitch/login")
 async def twitch_login():
 
+    state = secrets.token_urlsafe(16)
+
     url = (
         "https://id.twitch.tv/oauth2/authorize"
         f"?client_id={CLIENT_ID}"
         f"&redirect_uri={REDIRECT_URI}"
         "&response_type=code"
         f"&scope={SCOPES}"
+        f"&state={state}"
     )
 
     return RedirectResponse(url)
@@ -46,7 +50,7 @@ async def twitch_login():
 # 🔹 CALLBACK ROUTE
 # =========================
 @router.get("/auth/twitch/callback")
-async def twitch_callback(code: str):
+async def twitch_callback(code: str, state: str = None):
 
     async with aiohttp.ClientSession() as session:
 
@@ -184,3 +188,28 @@ async def twitch_callback(code: str):
                 f"&token={access_token}",
             status_code=302
         )
+    
+# =========================
+# 🔐 GET CURRENT USER
+# =========================
+async def get_current_user(token: str):
+
+    if not token:
+        return None
+
+    async with aiohttp.ClientSession() as session:
+
+        resp = await session.get(
+            "https://api.twitch.tv/helix/users",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Client-Id": CLIENT_ID
+            }
+        )
+
+        data = await resp.json()
+
+        if "data" not in data or not data["data"]:
+            return None
+
+        return data["data"][0]["login"]
