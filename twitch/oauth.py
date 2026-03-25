@@ -179,6 +179,8 @@ async def twitch_callback(code: str):
 
         # 6️⃣ Redirect to setup UI
         return RedirectResponse(
-            url=f"https://itsfrosea.github.io/dashboard/dashboard.html?channel={login}",
+            url=f"https://itsfrosea.github.io/dashboard/dashboard.html"
+                f"?channel={login}"
+                f"&token={access_token}",
             status_code=302
         )
