@@ -208,6 +208,10 @@ async def get_current_user(token: str):
             }
         )
 
+        if resp.status != 200:
+            print("❌ Twitch API error:", resp.status)
+            return None
+
         data = await resp.json()
 
         if "data" not in data or not data["data"]:
