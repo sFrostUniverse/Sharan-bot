@@ -20,7 +20,7 @@ EVENTSUB_SECRET = os.getenv("TWITCH_EVENTSUB_SECRET")
 REDIRECT_URI = "https://sharan-bot-kp71.onrender.com/auth/twitch/callback"
 CALLBACK_URL = "https://sharan-bot-kp71.onrender.com/eventsub"
 
-SCOPES = "chat:read chat:edit channel:read:subscriptions"
+SCOPES = "user:read:email chat:read chat:edit channel:read:subscriptions"
 
 if not CLIENT_ID or not CLIENT_SECRET:
     raise RuntimeError("TWITCH_CLIENT_ID or TWITCH_CLIENT_SECRET missing")
