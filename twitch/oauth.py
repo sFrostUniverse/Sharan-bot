@@ -4,6 +4,7 @@ import secrets
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import RedirectResponse
 from dotenv import load_dotenv
+from twitchio import user
 from event_queue import EVENT_QUEUE
 
 load_dotenv()
@@ -212,4 +213,9 @@ async def get_current_user(token: str):
         if "data" not in data or not data["data"]:
             return None
 
-        return data["data"][0]["login"]
+        user = data["data"][0]["login"]
+
+        print("TOKEN:", token)
+        print("TWITCH USER:", user)
+
+        return user

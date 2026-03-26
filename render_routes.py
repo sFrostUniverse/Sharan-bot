@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Header, HTTPException
+from twitchio import channel
 from event_queue import EVENT_QUEUE
 from twitch.oauth import get_current_user
 
@@ -21,6 +22,9 @@ async def verify_user(channel: str, authorization: str):
 
     if not user or user != channel:
         raise HTTPException(status_code=403, detail="Unauthorized")
+    
+    print("AUTH HEADER:", authorization)
+    print("CHANNEL:", channel)
 
     return user
 
